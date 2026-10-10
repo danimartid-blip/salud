@@ -1,0 +1,14 @@
+{
+  "name": "danimartid-salud",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "icons": "node scripts/gen-icons.mjs"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
+  }
+}

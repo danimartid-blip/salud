@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi Salud</title>
+<meta name="theme-color" content="#0079c8">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="css/styles.css?v=202610102100">
+</head>
+<body class="splash-body">
+
+<div class="splash">
+  <img class="splash-icon" src="icons/icon-512.png" alt="" width="84" height="84">
+  <h1>Mi Salud</h1>
+  <p id="statusText">Conecta tu cuenta de Google para ver tus exámenes.</p>
+  <button class="btn-primary" id="loginBtn">Conectar con Google</button>
+  <p class="splash-nota">Tus datos se leen directo desde tu planilla privada de Drive. Nada queda guardado en este sitio.</p>
+</div>
+
+<script src="js/config.js?v=202610102100"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="js/sheets-auth.js?v=202610102100"></script>
+<script src="js/login.js?v=202610102100"></script>
+</body>
+</html>
