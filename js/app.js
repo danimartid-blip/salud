@@ -399,7 +399,7 @@ function cuerpo() {
   const sueltas = D.cuerpo.filter((z) => !ZONAS[norm(z.zona)]);
 
   const marcas = ubicadas
-    .map((z) => {
+    .map((z, i) => {
       const p = ZONAS[norm(z.zona)];
       const cls = nivelDe(z.nivel);
       const izq = p.lado === "izq";
@@ -408,7 +408,7 @@ function cuerpo() {
       const activo = cls === "atencion" || cls === "alerta";
       return `<g class="zona zona-${cls}" data-zona="${esc(norm(z.zona))}" tabindex="0" role="button" aria-label="${esc(z.titulo)}: ${esc(NIVEL_TXT[cls])}">
         <path d="M${p.x} ${p.y} L${izq ? xl + 14 : xl - 14} ${p.ly} H${xl}" class="zona-guia"/>
-        ${activo ? `<circle cx="${p.x}" cy="${p.y}" r="7" class="zona-pulso"/>` : ""}
+        <circle cx="${p.x}" cy="${p.y}" r="${activo ? 7 : 5}" class="zona-pulso" style="animation-delay:${(i * 0.45).toFixed(2)}s"/>
         <circle cx="${p.x}" cy="${p.y}" r="${activo ? 7 : 5}" class="zona-punto"/>
         <text x="${xt}" y="${p.ly - 1}" text-anchor="${izq ? "end" : "start"}" class="zona-nombre">${esc(z.titulo)}</text>
         <text x="${xt}" y="${p.ly + 11}" text-anchor="${izq ? "end" : "start"}" class="zona-estado">${esc(NIVEL_TXT[cls])}</text>
@@ -424,10 +424,13 @@ function cuerpo() {
   return `<div class="escaner">
     <div class="escaner-cab">
       <div>
-        <strong>${seguimiento ? `${seguimiento} ${seguimiento === 1 ? "área" : "áreas"} en seguimiento` : "Todo en orden"}</strong>
-        <span>${cuenta("ok")} bien · ${cuenta("info")} para saber</span>
+        <strong><i class="vivo" aria-hidden="true"></i>Escáner en vivo</strong>
       </div>
-      <span class="escaner-ayuda">Toca un punto</span>
+      ${
+        seguimiento
+          ? `<span class="escaner-aviso"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3 2 20h20z" fill="#ffc533"/><path d="M12 10v4.5M12 17.2v.3" stroke="#3a2a00" stroke-width="2.2" stroke-linecap="round"/></svg>${seguimiento} en seguimiento</span>`
+          : `<span class="escaner-aviso">✓ Todo en orden</span>`
+      }
     </div>
     <svg viewBox="0 0 360 430" class="escaner-svg" role="group" aria-label="Estado por zona del cuerpo">
       <defs>
