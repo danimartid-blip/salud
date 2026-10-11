@@ -382,15 +382,15 @@ function edadExacta(nac) {
 // frente: el lado derecho del paciente queda a la izquierda de la pantalla.
 // `lado` decide a qué costado va la etiqueta y `ly` su altura.
 const ZONAS = {
-  oidos: { x: 155, y: 50, lado: "izq", ly: 44 },
+  oidos: { x: 160, y: 48, lado: "izq", ly: 44 },
   tiroides: { x: 180, y: 86, lado: "der", ly: 82 },
-  pulmones: { x: 160, y: 128, lado: "izq", ly: 122 },
+  pulmones: { x: 163, y: 128, lado: "izq", ly: 122 },
   corazon: { x: 193, y: 136, lado: "der", ly: 130 },
-  higado: { x: 160, y: 172, lado: "izq", ly: 170 },
+  higado: { x: 163, y: 172, lado: "izq", ly: 170 },
   rinones: { x: 203, y: 184, lado: "der", ly: 176 },
-  sangre: { x: 106, y: 208, lado: "izq", ly: 216 },
+  sangre: { x: 122, y: 208, lado: "izq", ly: 216 },
   digestivo: { x: 180, y: 208, lado: "der", ly: 214 },
-  ingle: { x: 196, y: 248, lado: "der", ly: 256 },
+  ingle: { x: 197, y: 252, lado: "der", ly: 256 },
   huesos: { x: 156, y: 338, lado: "izq", ly: 338 },
 };
 
@@ -439,14 +439,10 @@ function cuerpo() {
       <g class="rejilla">
         ${[70, 140, 210, 280, 350].map((y) => `<line x1="96" x2="264" y1="${y}" y2="${y}"/>`).join("")}
       </g>
-      <g class="figura" fill="#c4e9fd" stroke="#c4e9fd" opacity="0.78" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="180" cy="48" r="26" stroke="none"/>
-        <rect x="170" y="70" width="20" height="26" stroke="none"/>
-        <path d="M132 104 Q132 92 150 92 H210 Q228 92 228 104 L216 200 Q220 235 222 256 H138 Q140 235 144 200 Z" stroke="none"/>
-        <path d="M130 108 L108 190 L102 262" fill="none" stroke-width="22"/>
-        <path d="M230 108 L252 190 L258 262" fill="none" stroke-width="22"/>
-        <path d="M158 252 L154 340 L152 412" fill="none" stroke-width="32"/>
-        <path d="M202 252 L206 340 L208 412" fill="none" stroke-width="32"/>
+      <g class="figura">
+        <ellipse cx="180" cy="44" rx="21" ry="25"/>
+        <path d="M179 70 L190 70 C190 82 192 88 206 92 C222 96 236 100 238 118 C240 140 244 160 246 182 C248 204 256 226 258 248 C259 256 262 264 258 270 C254 276 246 272 245 262 C242 240 234 216 231 194 C229 176 226 158 224 142 C222 160 218 184 216 204 C215 222 222 240 224 262 C226 300 222 330 218 352 C216 372 218 392 214 412 C213 420 216 426 210 428 L196 428 C192 426 194 418 194 410 C194 388 192 368 192 350 C192 320 186 290 182 268 L179 266 Z"/>
+        <path d="M179 70 L190 70 C190 82 192 88 206 92 C222 96 236 100 238 118 C240 140 244 160 246 182 C248 204 256 226 258 248 C259 256 262 264 258 270 C254 276 246 272 245 262 C242 240 234 216 231 194 C229 176 226 158 224 142 C222 160 218 184 216 204 C215 222 222 240 224 262 C226 300 222 330 218 352 C216 372 218 392 214 412 C213 420 216 426 210 428 L196 428 C192 426 194 418 194 410 C194 388 192 368 192 350 C192 320 186 290 182 268 L179 266 Z" transform="translate(360 0) scale(-1 1)"/>
       </g>
       <rect x="92" y="0" width="176" height="46" fill="url(#gBarrido)" class="barrido"/>
       ${marcas}
@@ -504,6 +500,24 @@ const ICONOS_HABITO = {
 const iconoHabito = (k) =>
   `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONOS_HABITO[norm(k)] || `<circle cx="12" cy="12" r="8"/>`}</svg>`;
 
+/** Pendientes como línea de tiempo horizontal: ocupa una franja y se desliza. */
+function lineaTiempo() {
+  const lista = pendientes();
+  if (!lista.length) return `<div class="card"><p class="vacio">Nada pendiente.</p></div>`;
+  return `<div class="tiempo" role="list">${lista
+    .map((a) => {
+      const i = D.agenda.indexOf(a);
+      const atrasado = a._fecha && diasHasta(a._fecha) < 0;
+      return `<button type="button" class="tiempo-item${atrasado ? " atrasado" : ""}${a._fecha ? "" : " sin-fecha"}" data-pendiente="${i}" role="listitem">
+        <span class="tiempo-fecha">${a._fecha ? `${a._fecha.getUTCDate()} ${MESES[a._fecha.getUTCMonth()]}` : "Sin fecha"}</span>
+        <span class="tiempo-nodo" aria-hidden="true"></span>
+        <strong>${esc(a.titulo)}</strong>
+        <small>${a._fecha ? (atrasado ? `atrasado · ${textoDias(a._fecha)}` : textoDias(a._fecha)) : esc(a.tipo || "")}</small>
+      </button>`;
+    })
+    .join("")}</div>`;
+}
+
 function vistaInicio() {
   const p = D.perfil;
   const fuera = D.indicadores.filter(esAtencion).length;
@@ -512,57 +526,60 @@ function vistaInicio() {
   const e = edadExacta(p.nacimiento);
   const imc = imcDe(p);
   const peso = num(p.peso_kg), meta = num(p.meta_peso_kg);
-  const principales = D.diagnosticos.filter((d) => nivelDe(d.nivel) !== "info");
-  const dePaso = D.diagnosticos.filter((d) => nivelDe(d.nivel) === "info");
-  const orden = { alerta: 0, atencion: 1, info: 2, ok: 3 };
-  const habitos = D.habitos.map((h, i) => ({ ...h, _i: i })).sort((a, b) => orden[nivelDe(a.nivel)] - orden[nivelDe(b.nivel)]);
-  const faltan = habitos.filter((h) => ["atencion", "alerta"].includes(nivelDe(h.nivel))).length;
 
   return `
-  ${D.cuerpo.length ? cuerpo() : ""}
-
   <div class="kpis">
     ${
       e
         ? `<button type="button" class="kpi" data-kpi="edad">
       <span class="kpi-rot">Edad</span>
       <span class="kpi-num">${e.a}<small> años</small></span>
-      <span class="kpi-sub">${e.m} ${e.m === 1 ? "mes" : "meses"} y ${e.d} ${e.d === 1 ? "día" : "días"}</span>
+      <span class="kpi-sub">${e.m} ${e.m === 1 ? "mes" : "meses"}<br>${e.d} ${e.d === 1 ? "día" : "días"}</span>
     </button>`
         : ""
     }
     <button type="button" class="kpi" data-ir-filtro="${fuera ? "atencion" : "todos"}">
       <span class="kpi-rot">Indicadores</span>
       <span class="kpi-num">${enRango}<small> de ${conRango}</small></span>
-      <span class="kpi-sub">en rango${fuera ? ` · <strong>${fuera} fuera</strong>` : ""}</span>
+      <span class="kpi-sub">en rango<br>${fuera ? `<strong>${fuera} fuera</strong>` : "ninguno fuera"}</span>
       <span class="kpi-barra" aria-hidden="true"><i style="width:${conRango ? (enRango / conRango) * 100 : 0}%"></i></span>
     </button>
     ${
       imc != null
-        ? `<button type="button" class="kpi kpi-ancho" data-kpi="peso">
+        ? `<button type="button" class="kpi" data-kpi="peso">
       <span class="kpi-rot">Peso</span>
-      <span class="kpi-fila">
-        <span class="kpi-num">${fmt(peso)}<small> kg</small></span>
-        <span class="kpi-sub">IMC ${fmt(Math.round(imc * 10) / 10)}${meta && peso > meta ? ` · faltan <strong>${fmt(Math.round((peso - meta) * 10) / 10)} kg</strong> para tu meta de ${fmt(meta)}` : ""}</span>
-      </span>
-      ${reglaImc(p)}
+      <span class="kpi-num">${fmt(peso)}<small> kg</small></span>
+      <span class="kpi-sub">IMC ${fmt(Math.round(imc * 10) / 10)}${meta ? `<br>meta <strong>${fmt(meta)} kg</strong>` : ""}</span>
     </button>`
         : ""
     }
   </div>
 
-  <h2>Lo que tengo hoy</h2>
-  ${principales.map(tarjetaDiagnostico).join("") || `<div class="card"><p class="vacio">Sin diagnósticos activos.</p></div>`}
-  ${
-    dePaso.length
-      ? `<details class="card plegable"><summary>Hallazgos de paso (${dePaso.length})</summary>${dePaso.map(tarjetaDiagnostico).join("")}</details>`
-      : ""
-  }
+  ${D.cuerpo.length ? cuerpo() : ""}
 
-  ${
-    habitos.length
-      ? `<h2>Lo que me falta ${faltan ? `<span class="cuenta cuenta-atencion">${faltan} por mejorar</span>` : `<span class="cuenta">todo al día</span>`}</h2>
-  <div class="habitos">${habitos
+  <h2>Pendientes <a class="h2-link" href="#plan">Ver plan</a></h2>
+  ${lineaTiempo()}`;
+}
+
+function abrirPendiente(i) {
+  const a = D.agenda[i];
+  if (!a) return;
+  const atrasado = a._fecha && diasHasta(a._fecha) < 0;
+  mostrarHoja(`
+    <p class="det-grupo">${esc(a.tipo || "Pendiente")}</p>
+    <h2 id="hojaTitulo">${esc(a.titulo)}</h2>
+    <div class="det-valor">${pill(atrasado ? "atencion" : "info", a._fecha ? (atrasado ? `Atrasado · ${textoDias(a._fecha)}` : textoDias(a._fecha)) : "Sin fecha")}</div>
+    ${a._fecha ? `<p class="det-meta">${esc(fechaLarga(a._fecha))}</p>` : ""}
+    ${bloqueDet("Detalle", a.detalle, "det-lectura")}
+    <a class="link-mas" href="#plan" data-cerrar>Ver todo el plan</a>`);
+}
+
+/** Tarjetas de hábitos: viven en la pestaña Plan. */
+function tarjetasHabitos() {
+  const orden = { alerta: 0, atencion: 1, info: 2, ok: 3 };
+  return D.habitos
+    .map((h, i) => ({ ...h, _i: i }))
+    .sort((a, b) => orden[nivelDe(a.nivel)] - orden[nivelDe(b.nivel)])
     .map((h) => {
       const cls = nivelDe(h.nivel);
       return `<button type="button" class="habito habito-${cls}" data-habito="${h._i}">
@@ -572,15 +589,7 @@ function vistaInicio() {
         ${pill(cls, HABITO_TXT[cls])}
       </button>`;
     })
-    .join("")}</div>`
-      : ""
-  }
-
-  <h2>Pendientes</h2>
-  <div class="card">
-    <ul class="agenda">${pendientes().slice(0, 4).map(itemAgenda).join("") || `<li class="vacio">Nada pendiente.</li>`}</ul>
-    <a class="link-mas" href="#plan">Ver todo el plan</a>
-  </div>`;
+    .join("");
 }
 
 function mostrarHoja(html) {
@@ -737,6 +746,19 @@ function vistaPlan() {
   <div class="card"><ul class="agenda">${pend.map(itemAgenda).join("") || `<li class="vacio">Nada pendiente.</li>`}</ul></div>
   ${hechos.length ? `<details class="card plegable"><summary>Ya hecho (${hechos.length})</summary><ul class="agenda">${hechos.map(itemAgenda).join("")}</ul></details>` : ""}
 
+  <h2>Mis diagnósticos</h2>
+  ${D.diagnosticos.filter((d) => nivelDe(d.nivel) !== "info").map(tarjetaDiagnostico).join("") || `<div class="card"><p class="vacio">Sin diagnósticos activos.</p></div>`}
+  ${
+    D.diagnosticos.some((d) => nivelDe(d.nivel) === "info")
+      ? `<details class="card plegable"><summary>Hallazgos de paso (${D.diagnosticos.filter((d) => nivelDe(d.nivel) === "info").length})</summary>${D.diagnosticos
+          .filter((d) => nivelDe(d.nivel) === "info")
+          .map(tarjetaDiagnostico)
+          .join("")}</details>`
+      : ""
+  }
+
+  ${D.habitos.length ? `<h2>Hábitos</h2><div class="habitos">${tarjetasHabitos()}</div>` : ""}
+
   <h2>Preguntas para mis médicos</h2>
   ${
     [...porMedico]
@@ -864,6 +886,9 @@ function init() {
     if (zona) return abrirZona(zona.dataset.zona);
     const hab = ev.target.closest("[data-habito]");
     if (hab) return abrirHabito(Number(hab.dataset.habito));
+    const pen = ev.target.closest("[data-pendiente]");
+    if (pen) return abrirPendiente(Number(pen.dataset.pendiente));
+    if (ev.target.closest("[data-cerrar]")) cerrarHoja();
     const kpi = ev.target.closest("[data-kpi]");
     if (kpi) return abrirKpi(kpi.dataset.kpi);
     const ir = ev.target.closest("[data-ir-filtro]");
