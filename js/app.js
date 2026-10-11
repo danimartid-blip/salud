@@ -134,6 +134,8 @@ function armar(crudo) {
     agenda: conFecha(crudo.Agenda),
     preguntas: aObjetos(crudo.Preguntas),
     bitacora: conFecha(crudo.Bitacora).sort((a, b) => (b._fecha || 0) - (a._fecha || 0)),
+    cuerpo: aObjetos(crudo.Cuerpo),
+    habitos: aObjetos(crudo.Habitos),
   };
 }
 
@@ -275,29 +277,12 @@ function filaIndicador(ind) {
 
 // ---------- Vistas ----------
 
-function edad(nac) {
-  const d = aFecha(nac);
-  if (!d) return null;
-  const h = hoyUTC();
-  let e = h.getUTCFullYear() - d.getUTCFullYear();
-  if (h.getUTCMonth() < d.getUTCMonth() || (h.getUTCMonth() === d.getUTCMonth() && h.getUTCDate() < d.getUTCDate())) e--;
-  return e;
-}
-
 function pintarHero() {
   const p = D.perfil;
   const nombre = String(p.nombre || "").split(" ")[0];
   $("saludo").textContent = nombre ? `Hola, ${nombre}` : "Hola";
-  const chips = [];
-  const e = edad(p.nacimiento);
-  if (e != null) chips.push(`${e} años`);
-  const peso = num(p.peso_kg), talla = num(p.talla_m);
-  if (peso) chips.push(`${fmt(peso)} kg`);
-  if (talla) chips.push(`${fmt(talla)} m`);
-  if (peso && talla) chips.push(`IMC ${fmt(Math.round((peso / (talla * talla)) * 10) / 10)}`);
   const act = aFecha(p.actualizado);
-  if (act) chips.push(`Actualizado ${fechaLarga(act)}`);
-  $("heroChips").innerHTML = chips.map((c) => `<span class="chip">${esc(c)}</span>`).join("");
+  $("heroChips").innerHTML = act ? `<span class="chip">Actualizado ${esc(fechaLarga(act))}</span>` : "";
 }
 
 function textoDias(d) {
@@ -365,45 +350,300 @@ function tarjetaMedicamento(m) {
   </div>`;
 }
 
+// ---------- Inicio: resumen ejecutivo ----------
+
+const NIVEL_TXT = { ok: "Bien", atencion: "En seguimiento", alerta: "Prioritario", info: "Para saber" };
+const HABITO_TXT = { ok: "Bien", atencion: "Por mejorar", alerta: "Urgente", info: "Por confirmar" };
+const nivelDe = (x) => (ESTADOS[norm(x)] ? ESTADOS[norm(x)].cls : "info");
+
+/** Edad exacta en años, meses y días, y cuánto falta para el próximo cumpleaños. */
+function edadExacta(nac) {
+  const n = aFecha(nac);
+  if (!n) return null;
+  const h = hoyUTC();
+  let a = h.getUTCFullYear() - n.getUTCFullYear();
+  let m = h.getUTCMonth() - n.getUTCMonth();
+  let d = h.getUTCDate() - n.getUTCDate();
+  if (d < 0) {
+    m--;
+    // días del mes anterior al actual
+    d += new Date(Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), 0)).getUTCDate();
+  }
+  if (m < 0) {
+    a--;
+    m += 12;
+  }
+  let prox = new Date(Date.UTC(h.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
+  if (prox < h) prox = new Date(Date.UTC(h.getUTCFullYear() + 1, n.getUTCMonth(), n.getUTCDate()));
+  return { a, m, d, faltan: Math.round((prox - h) / 86400000), cumple: a + (prox > h ? 1 : 0), prox };
+}
+
+// Posición de cada zona sobre la figura (viewBox 360×430). La figura se mira de
+// frente: el lado derecho del paciente queda a la izquierda de la pantalla.
+// `lado` decide a qué costado va la etiqueta y `ly` su altura.
+const ZONAS = {
+  oidos: { x: 155, y: 50, lado: "izq", ly: 44 },
+  tiroides: { x: 180, y: 86, lado: "der", ly: 82 },
+  pulmones: { x: 160, y: 128, lado: "izq", ly: 122 },
+  corazon: { x: 193, y: 136, lado: "der", ly: 130 },
+  higado: { x: 160, y: 172, lado: "izq", ly: 170 },
+  rinones: { x: 203, y: 184, lado: "der", ly: 176 },
+  sangre: { x: 106, y: 208, lado: "izq", ly: 216 },
+  digestivo: { x: 180, y: 208, lado: "der", ly: 214 },
+  ingle: { x: 196, y: 248, lado: "der", ly: 256 },
+  huesos: { x: 156, y: 338, lado: "izq", ly: 338 },
+};
+
+function cuerpo() {
+  const ubicadas = D.cuerpo.filter((z) => ZONAS[norm(z.zona)]);
+  const sueltas = D.cuerpo.filter((z) => !ZONAS[norm(z.zona)]);
+
+  const marcas = ubicadas
+    .map((z) => {
+      const p = ZONAS[norm(z.zona)];
+      const cls = nivelDe(z.nivel);
+      const izq = p.lado === "izq";
+      const xl = izq ? 86 : 274; // donde termina la línea guía
+      const xt = izq ? 82 : 278; // donde parte el texto
+      const activo = cls === "atencion" || cls === "alerta";
+      return `<g class="zona zona-${cls}" data-zona="${esc(norm(z.zona))}" tabindex="0" role="button" aria-label="${esc(z.titulo)}: ${esc(NIVEL_TXT[cls])}">
+        <path d="M${p.x} ${p.y} L${izq ? xl + 14 : xl - 14} ${p.ly} H${xl}" class="zona-guia"/>
+        ${activo ? `<circle cx="${p.x}" cy="${p.y}" r="7" class="zona-pulso"/>` : ""}
+        <circle cx="${p.x}" cy="${p.y}" r="${activo ? 7 : 5}" class="zona-punto"/>
+        <text x="${xt}" y="${p.ly - 1}" text-anchor="${izq ? "end" : "start"}" class="zona-nombre">${esc(z.titulo)}</text>
+        <text x="${xt}" y="${p.ly + 11}" text-anchor="${izq ? "end" : "start"}" class="zona-estado">${esc(NIVEL_TXT[cls])}</text>
+        <rect x="${izq ? 0 : xl - 16}" y="${p.ly - 14}" width="${izq ? xl + 16 : 360 - xl + 16}" height="30" fill="transparent"/>
+        <circle cx="${p.x}" cy="${p.y}" r="16" fill="transparent"/>
+      </g>`;
+    })
+    .join("");
+
+  const cuenta = (c) => D.cuerpo.filter((z) => nivelDe(z.nivel) === c).length;
+  const seguimiento = cuenta("atencion") + cuenta("alerta");
+
+  return `<div class="escaner">
+    <div class="escaner-cab">
+      <div>
+        <strong>${seguimiento ? `${seguimiento} ${seguimiento === 1 ? "área" : "áreas"} en seguimiento` : "Todo en orden"}</strong>
+        <span>${cuenta("ok")} bien · ${cuenta("info")} para saber</span>
+      </div>
+      <span class="escaner-ayuda">Toca un punto</span>
+    </div>
+    <svg viewBox="0 0 360 430" class="escaner-svg" role="group" aria-label="Estado por zona del cuerpo">
+      <defs>
+        <linearGradient id="gBarrido" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+          <stop offset="1" stop-color="#fff" stop-opacity="0.32"/>
+        </linearGradient>
+      </defs>
+      <g class="rejilla">
+        ${[70, 140, 210, 280, 350].map((y) => `<line x1="96" x2="264" y1="${y}" y2="${y}"/>`).join("")}
+      </g>
+      <g class="figura" fill="#c4e9fd" stroke="#c4e9fd" opacity="0.78" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="180" cy="48" r="26" stroke="none"/>
+        <rect x="170" y="70" width="20" height="26" stroke="none"/>
+        <path d="M132 104 Q132 92 150 92 H210 Q228 92 228 104 L216 200 Q220 235 222 256 H138 Q140 235 144 200 Z" stroke="none"/>
+        <path d="M130 108 L108 190 L102 262" fill="none" stroke-width="22"/>
+        <path d="M230 108 L252 190 L258 262" fill="none" stroke-width="22"/>
+        <path d="M158 252 L154 340 L152 412" fill="none" stroke-width="32"/>
+        <path d="M202 252 L206 340 L208 412" fill="none" stroke-width="32"/>
+      </g>
+      <rect x="92" y="0" width="176" height="46" fill="url(#gBarrido)" class="barrido"/>
+      ${marcas}
+    </svg>
+    ${
+      sueltas.length
+        ? `<div class="escaner-chips">${sueltas
+            .map((z) => {
+              const cls = nivelDe(z.nivel);
+              return `<button type="button" class="escaner-chip zona-${cls}" data-zona="${esc(norm(z.zona))}"><i></i>${esc(z.titulo)} · ${esc(NIVEL_TXT[cls])}</button>`;
+            })
+            .join("")}</div>`
+        : ""
+    }
+  </div>`;
+}
+
+const imcDe = (p) => {
+  const peso = num(p.peso_kg), talla = num(p.talla_m);
+  return peso && talla ? peso / (talla * talla) : null;
+};
+
+/** Regla de IMC con las tres franjas, dónde estás hoy y dónde queda tu meta. */
+function reglaImc(p) {
+  const imc = imcDe(p);
+  if (imc == null) return "";
+  const talla = num(p.talla_m), meta = num(p.meta_peso_kg);
+  const lo = 18.5, hi = 35;
+  const pct = (v) => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+  const imcMeta = meta ? meta / (talla * talla) : null;
+  return `<div class="imc">
+    <div class="imc-pista">
+      <span class="imc-f imc-normal" style="width:${pct(25)}%"></span>
+      <span class="imc-f imc-sobre" style="width:${pct(30) - pct(25)}%"></span>
+      <span class="imc-f imc-obes" style="width:${100 - pct(30)}%"></span>
+      ${imcMeta ? `<span class="imc-meta" style="left:${pct(imcMeta)}%" title="Meta"></span>` : ""}
+      <span class="imc-hoy" style="left:${pct(imc)}%"></span>
+    </div>
+    <div class="imc-ejes"><span style="left:0">18,5</span><span style="left:${pct(25)}%">25</span><span style="left:${pct(30)}%">30</span></div>
+    <div class="imc-leyenda"><span><i class="l-hoy"></i>Hoy</span>${imcMeta ? `<span><i class="l-meta"></i>Meta</span>` : ""}<span><i class="l-normal"></i>Normal</span><span><i class="l-sobre"></i>Sobrepeso</span><span><i class="l-obes"></i>Obesidad</span></div>
+  </div>`;
+}
+
+const ICONOS_HABITO = {
+  ejercicio: `<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>`,
+  alimentacion: `<path d="M12 7c-3-2-7 0-7 5 0 4 3 8 5 8 1 0 1-.6 2-.6s1 .6 2 .6c2 0 5-4 5-8 0-5-4-7-7-5z"/><path d="M12 7c0-2 1-3 3-4"/>`,
+  peso: `<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10a4 4 0 0 1 8 0M12 10l2-2"/>`,
+  estres: `<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>`,
+  pausas: `<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`,
+  sueno: `<path d="M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z"/>`,
+  alcohol: `<path d="M7 3h10l-1 7a4 4 0 0 1-8 0zM12 14v6M9 20h6"/>`,
+  tabaco: `<path d="M3 15h13v3H3zM19 15v3M21 15v3M17 11c0-2 3-2 3-4"/>`,
+  medicamento: `<rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-45 12 12)"/><path d="M8.5 8.5l7 7"/>`,
+};
+const iconoHabito = (k) =>
+  `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONOS_HABITO[norm(k)] || `<circle cx="12" cy="12" r="8"/>`}</svg>`;
+
 function vistaInicio() {
-  const fuera = D.indicadores.filter(esAtencion);
+  const p = D.perfil;
+  const fuera = D.indicadores.filter(esAtencion).length;
   const enRango = D.indicadores.filter((i) => i.estado === "ok").length;
-  const prox = pendientes().filter((a) => a._fecha);
-  const sig = prox.find((a) => diasHasta(a._fecha) >= 0) || prox[0];
-  const activos = D.medicamentos.filter((m) => norm(m.estado) === "activo");
+  const conRango = fuera + enRango;
+  const e = edadExacta(p.nacimiento);
+  const imc = imcDe(p);
+  const peso = num(p.peso_kg), meta = num(p.meta_peso_kg);
+  const principales = D.diagnosticos.filter((d) => nivelDe(d.nivel) !== "info");
+  const dePaso = D.diagnosticos.filter((d) => nivelDe(d.nivel) === "info");
+  const orden = { alerta: 0, atencion: 1, info: 2, ok: 3 };
+  const habitos = D.habitos.map((h, i) => ({ ...h, _i: i })).sort((a, b) => orden[nivelDe(a.nivel)] - orden[nivelDe(b.nivel)]);
+  const faltan = habitos.filter((h) => ["atencion", "alerta"].includes(nivelDe(h.nivel))).length;
 
   return `
-  <div class="tiles">
-    <a class="tile tile-${fuera.length ? "atencion" : "ok"}" href="#indicadores">
-      <span class="tile-num">${fuera.length}</span>
-      <span class="tile-txt">fuera de rango</span>
-    </a>
-    <a class="tile tile-ok" href="#indicadores">
-      <span class="tile-num">${enRango}</span>
-      <span class="tile-txt">en rango</span>
-    </a>
-    <a class="tile tile-info" href="#plan">
-      <span class="tile-num">${sig ? `${sig._fecha.getUTCDate()} ${MESES[sig._fecha.getUTCMonth()]}` : "—"}</span>
-      <span class="tile-txt">${sig ? esc(sig.titulo) : "sin citas"}</span>
-    </a>
+  ${D.cuerpo.length ? cuerpo() : ""}
+
+  <div class="kpis">
+    ${
+      e
+        ? `<button type="button" class="kpi" data-kpi="edad">
+      <span class="kpi-rot">Edad</span>
+      <span class="kpi-num">${e.a}<small> años</small></span>
+      <span class="kpi-sub">${e.m} ${e.m === 1 ? "mes" : "meses"} y ${e.d} ${e.d === 1 ? "día" : "días"}</span>
+    </button>`
+        : ""
+    }
+    <button type="button" class="kpi" data-ir-filtro="${fuera ? "atencion" : "todos"}">
+      <span class="kpi-rot">Indicadores</span>
+      <span class="kpi-num">${enRango}<small> de ${conRango}</small></span>
+      <span class="kpi-sub">en rango${fuera ? ` · <strong>${fuera} fuera</strong>` : ""}</span>
+      <span class="kpi-barra" aria-hidden="true"><i style="width:${conRango ? (enRango / conRango) * 100 : 0}%"></i></span>
+    </button>
+    ${
+      imc != null
+        ? `<button type="button" class="kpi kpi-ancho" data-kpi="peso">
+      <span class="kpi-rot">Peso</span>
+      <span class="kpi-fila">
+        <span class="kpi-num">${fmt(peso)}<small> kg</small></span>
+        <span class="kpi-sub">IMC ${fmt(Math.round(imc * 10) / 10)}${meta && peso > meta ? ` · faltan <strong>${fmt(Math.round((peso - meta) * 10) / 10)} kg</strong> para tu meta de ${fmt(meta)}` : ""}</span>
+      </span>
+      ${reglaImc(p)}
+    </button>`
+        : ""
+    }
   </div>
 
-  <h2>Requiere atención</h2>
-  <div class="card lista">
-    ${fuera.length ? fuera.map(filaIndicador).join("") : `<p class="vacio">Todos tus indicadores más recientes están dentro del rango de referencia.</p>`}
-  </div>
+  <h2>Lo que tengo hoy</h2>
+  ${principales.map(tarjetaDiagnostico).join("") || `<div class="card"><p class="vacio">Sin diagnósticos activos.</p></div>`}
+  ${
+    dePaso.length
+      ? `<details class="card plegable"><summary>Hallazgos de paso (${dePaso.length})</summary>${dePaso.map(tarjetaDiagnostico).join("")}</details>`
+      : ""
+  }
 
-  <h2>Mis diagnósticos</h2>
-  ${D.diagnosticos.map(tarjetaDiagnostico).join("") || `<div class="card"><p class="vacio">Sin diagnósticos registrados.</p></div>`}
+  ${
+    habitos.length
+      ? `<h2>Lo que me falta ${faltan ? `<span class="cuenta cuenta-atencion">${faltan} por mejorar</span>` : `<span class="cuenta">todo al día</span>`}</h2>
+  <div class="habitos">${habitos
+    .map((h) => {
+      const cls = nivelDe(h.nivel);
+      return `<button type="button" class="habito habito-${cls}" data-habito="${h._i}">
+        <span class="habito-icono">${iconoHabito(h.icono)}</span>
+        <strong>${esc(h.nombre)}</strong>
+        <span class="habito-txt">${esc(h.resumen)}</span>
+        ${pill(cls, HABITO_TXT[cls])}
+      </button>`;
+    })
+    .join("")}</div>`
+      : ""
+  }
 
-  <h2>Próximos pasos</h2>
+  <h2>Pendientes</h2>
   <div class="card">
     <ul class="agenda">${pendientes().slice(0, 4).map(itemAgenda).join("") || `<li class="vacio">Nada pendiente.</li>`}</ul>
     <a class="link-mas" href="#plan">Ver todo el plan</a>
-  </div>
+  </div>`;
+}
 
-  <h2>Medicamentos en uso</h2>
-  <div class="card">${activos.map(tarjetaMedicamento).join("") || `<p class="vacio">Sin medicamentos activos.</p>`}</div>`;
+function mostrarHoja(html) {
+  $("hojaContenido").innerHTML = html;
+  $("hojaFondo").hidden = false;
+  document.body.classList.add("sin-scroll");
+  $("hoja").scrollTop = 0;
+  $("hojaCerrar").focus();
+}
+
+const bloqueDet = (t, c, cls = "") => (c ? `<section class="det-bloque ${cls}"><h4>${t}</h4><p>${esc(c)}</p></section>` : "");
+
+function abrirZona(clave) {
+  const z = D.cuerpo.find((x) => norm(x.zona) === clave);
+  if (!z) return;
+  const cls = nivelDe(z.nivel);
+  const grupos = String(z.grupos || "").split(",").map(norm).filter(Boolean);
+  const inds = D.indicadores.filter((i) => grupos.includes(norm(i.grupo)));
+  mostrarHoja(`
+    <p class="det-grupo">Zona</p>
+    <h2 id="hojaTitulo">${esc(z.titulo)}</h2>
+    <div class="det-valor">${pill(cls, NIVEL_TXT[cls])}</div>
+    ${bloqueDet("En resumen", z.resumen, "det-lectura")}
+    ${bloqueDet("Qué sigue", z.que_sigue)}
+    ${inds.length ? `<h4 class="det-h">Indicadores de esta zona</h4><div class="lista lista-hoja">${inds.map(filaIndicador).join("")}</div>` : ""}`);
+}
+
+function abrirHabito(i) {
+  const h = D.habitos[i];
+  if (!h) return;
+  const cls = nivelDe(h.nivel);
+  mostrarHoja(`
+    <p class="det-grupo">Hábito</p>
+    <h2 id="hojaTitulo">${esc(h.nombre)}</h2>
+    <div class="det-valor">${pill(cls, HABITO_TXT[cls])}</div>
+    ${bloqueDet("Cómo estás", h.resumen, "det-lectura")}
+    ${bloqueDet("Meta", h.meta)}
+    ${bloqueDet("Por qué importa en tu caso", h.detalle)}`);
+}
+
+function abrirKpi(cual) {
+  const p = D.perfil;
+  if (cual === "edad") {
+    const e = edadExacta(p.nacimiento);
+    return mostrarHoja(`
+      <p class="det-grupo">Perfil</p>
+      <h2 id="hojaTitulo">Edad</h2>
+      <div class="det-valor"><span class="det-num">${e.a}</span><span class="det-unidad">años, ${e.m} ${e.m === 1 ? "mes" : "meses"} y ${e.d} ${e.d === 1 ? "día" : "días"}</span></div>
+      <p class="det-meta">Nacimiento: ${esc(fechaLarga(aFecha(p.nacimiento)))}</p>
+      ${bloqueDet("Próximo cumpleaños", `Cumples ${e.cumple} el ${fechaLarga(e.prox)}: ${e.faltan === 0 ? "es hoy" : `faltan ${e.faltan} días`}.`, "det-lectura")}
+      ${bloqueDet("Antecedentes familiares", p.antecedentes_familiares)}
+      ${bloqueDet("Previsión", p.prevision)}`);
+  }
+  const imc = imcDe(p), peso = num(p.peso_kg), talla = num(p.talla_m), meta = num(p.meta_peso_kg);
+  mostrarHoja(`
+    <p class="det-grupo">Perfil</p>
+    <h2 id="hojaTitulo">Peso e IMC</h2>
+    <div class="det-valor"><span class="det-num">${fmt(peso)}</span><span class="det-unidad">kg · ${fmt(talla)} m · IMC ${fmt(Math.round(imc * 10) / 10)}</span></div>
+    ${p.peso_fecha ? `<p class="det-meta">Registrado el ${esc(fechaLarga(aFecha(p.peso_fecha)))}</p>` : ""}
+    ${reglaImc(p)}
+    ${bloqueDet("Tu meta", meta ? `${fmt(meta)} kg (IMC ${fmt(Math.round((meta / (talla * talla)) * 10) / 10)}). ${p.meta_peso || ""}` : p.meta_peso, "det-lectura")}
+    ${bloqueDet("Sobre este dato", p.peso_nota)}
+    ${bloqueDet("Qué es el IMC", "Peso dividido por la talla al cuadrado. Entre 18,5 y 25 se considera normal, de 25 a 30 sobrepeso y sobre 30 obesidad. Es una referencia general: no distingue músculo de grasa.")}`);
 }
 
 let filtroInd = "todos";
@@ -554,10 +794,7 @@ function abrirIndicador(clave) {
       <thead><tr><th>Fecha</th><th class="n">Valor</th><th class="n">Referencia</th><th>Estado</th></tr></thead>
       <tbody>${filas}</tbody>
     </table></div>`;
-  $("hojaFondo").hidden = false;
-  document.body.classList.add("sin-scroll");
-  $("hoja").scrollTop = 0;
-  $("hojaCerrar").focus();
+  mostrarHoja($("hojaContenido").innerHTML);
 }
 
 function cerrarHoja() {
@@ -623,6 +860,18 @@ function init() {
   document.addEventListener("click", (ev) => {
     const ind = ev.target.closest("[data-analito]");
     if (ind) return abrirIndicador(ind.dataset.analito);
+    const zona = ev.target.closest("[data-zona]");
+    if (zona) return abrirZona(zona.dataset.zona);
+    const hab = ev.target.closest("[data-habito]");
+    if (hab) return abrirHabito(Number(hab.dataset.habito));
+    const kpi = ev.target.closest("[data-kpi]");
+    if (kpi) return abrirKpi(kpi.dataset.kpi);
+    const ir = ev.target.closest("[data-ir-filtro]");
+    if (ir) {
+      filtroInd = ir.dataset.irFiltro;
+      location.hash = "indicadores";
+      return;
+    }
     const f = ev.target.closest("[data-filtro]");
     if (f) {
       filtroInd = f.dataset.filtro;
@@ -646,6 +895,11 @@ function init() {
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && !$("hojaFondo").hidden) cerrarHoja();
+    // Los puntos del cuerpo son <g role="button">: Enter y espacio tienen que abrirlos.
+    if ((ev.key === "Enter" || ev.key === " ") && ev.target.dataset?.zona) {
+      ev.preventDefault();
+      abrirZona(ev.target.dataset.zona);
+    }
   });
   document.addEventListener("input", (ev) => {
     if (ev.target.id !== "buscar") return;

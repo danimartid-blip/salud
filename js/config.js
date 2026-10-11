@@ -7,5 +7,5 @@ window.APP_CONFIG = {
   SPREADSHEET_ID: "1wGdx3_Y1vvQtYHXDuJywQDbC9osgKjHTWUfg2svbSBU",
   // Solo lectura: la app muestra, no escribe. Los datos los actualiza la skill.
   SCOPES: "https://www.googleapis.com/auth/spreadsheets.readonly",
-  TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora"],
+  TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora", "Cuerpo", "Habitos"],
 };
