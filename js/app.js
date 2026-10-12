@@ -135,6 +135,8 @@ function armar(crudo) {
     preguntas: aObjetos(crudo.Preguntas),
     bitacora: conFecha(crudo.Bitacora).sort((a, b) => (b._fecha || 0) - (a._fecha || 0)),
     cuerpo: aObjetos(crudo.Cuerpo),
+    metas: aObjetos(crudo.Metas).filter((m) => m.id !== "" && norm(m.activo) !== "no"),
+    registro: aObjetos(crudo.Registro),
     habitos: aObjetos(crudo.Habitos),
   };
 }
@@ -840,7 +842,7 @@ function mostrarTip(el) {
 
 // ---------- Navegación y arranque ----------
 
-const VISTAS = { inicio: vistaInicio, indicadores: vistaIndicadores, examenes: vistaExamenes, plan: vistaPlan };
+const VISTAS = { inicio: vistaInicio, indicadores: vistaIndicadores, examenes: vistaExamenes, metas: vistaMetas, plan: vistaPlan };
 
 function pintar() {
   if (!D) return;

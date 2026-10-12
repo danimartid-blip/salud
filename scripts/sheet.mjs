@@ -33,6 +33,11 @@ export const ESQUEMA = {
   // digestivo, ingle, huesos); cualquier otra se muestra como etiqueta bajo la figura.
   Cuerpo: ["zona", "titulo", "nivel", "resumen", "que_sigue", "grupos"],
   Habitos: ["nombre", "icono", "nivel", "resumen", "meta", "detalle"],
+  // Metas diarias. `id` es la clave corta que queda escrita en Registro: no cambiarla
+  // después, o se pierde el historial de esa meta. meta_semanal = días por semana (1 a 7).
+  Metas: ["id", "nombre", "icono", "grupo", "meta_semanal", "como", "por_que", "activo"],
+  // Lo escribe la app: una fila por día con los ids cumplidos separados por coma.
+  Registro: ["fecha", "cumplidas"],
 };
 
 const sheets = google.sheets({ version: "v4", auth: getAuth() });

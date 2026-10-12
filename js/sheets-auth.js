@@ -3,10 +3,12 @@
 // navegador.
 //
 // OJO: todas las apps de danimartid-blip.github.io comparten origen, o sea
-// comparten localStorage. Esta clave tiene que ser distinta a la de Finanzas
-// ("gsheets_token"): acá el token es de solo lectura y, si se pisaran, Finanzas
-// dejaría de poder guardar.
-const TOKEN_KEY = "salud_token";
+// comparten localStorage. Esta clave es propia de esta app, distinta a la de
+// Finanzas ("gsheets_token"), para que cerrar sesión en una no afecte a la otra.
+// Lleva "_rw" porque el permiso pasó de solo lectura a lectura y escritura: un
+// token viejo de solo lectura guardado con la clave anterior no sirve para
+// marcar metas, y con la clave nueva la app pide entrar de nuevo una vez.
+const TOKEN_KEY = "salud_token_rw";
 let tokenClient = null;
 let tokenClientReady = null;
 
@@ -123,6 +125,35 @@ async function readTabs(tabs) {
   return out;
 }
 
+async function sheetsFetch(path, options = {}) {
+  const token = await getAccessToken();
+  const res = await fetch(`${SHEETS_BASE}/${window.APP_CONFIG.SPREADSHEET_ID}${path}`, {
+    ...options,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(options.headers || {}) },
+  });
+  if (res.status === 401) localStorage.removeItem(TOKEN_KEY);
+  if (!res.ok) throw new Error(`Sheets API ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+async function readRange(range) {
+  const data = await sheetsFetch(`/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`);
+  return data.values || [];
+}
+
+// Siempre RAW: con USER_ENTERED, Sheets convierte "2026-10-12" en un número de
+// serie de fecha y la fila deja de encontrarse por su texto.
+async function updateRange(range, values) {
+  return sheetsFetch(`/values/${encodeURIComponent(range)}?valueInputOption=RAW`, { method: "PUT", body: JSON.stringify({ values }) });
+}
+
+async function appendRow(range, row) {
+  return sheetsFetch(`/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+    method: "POST",
+    body: JSON.stringify({ values: [row] }),
+  });
+}
+
 function requireAuthOrRedirect() {
   if (isLoggedIn()) return true;
   location.replace("login.html");
@@ -130,4 +161,4 @@ function requireAuthOrRedirect() {
 }
 
 window.SheetsAuth = { getAccessToken, isLoggedIn, logout, requireAuthOrRedirect };
-window.SheetsApi = { readTabs };
+window.SheetsApi = { readTabs, readRange, updateRange, appendRow };
