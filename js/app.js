@@ -870,7 +870,10 @@ async function cargar() {
     $("error").hidden = false;
     $("error").innerHTML = `<strong>No se pudieron cargar tus datos.</strong><p>${esc(err.message)}</p>
       <button type="button" class="btn-primary" id="btnReintentar">Volver a entrar</button>`;
-    $("btnReintentar").addEventListener("click", () => location.replace("login.html"));
+    $("btnReintentar").addEventListener("click", () => {
+      window.SheetsAuth?.logout?.();
+      location.replace("login.html");
+    });
   } finally {
     $("cargando").hidden = true;
   }

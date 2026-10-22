@@ -118,6 +118,9 @@ async function readTabs(tabs) {
     localStorage.removeItem(TOKEN_KEY);
     throw new Error("La sesión venció. Vuelve a entrar.");
   }
+  if (res.status === 403 || res.status === 404) {
+    throw new Error("Esta cuenta de Google no tiene acceso a esta ficha. Cierra sesión y entra con la cuenta correcta, o abre de nuevo tu enlace personal.");
+  }
   if (!res.ok) throw new Error(`Sheets API ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const out = {};
