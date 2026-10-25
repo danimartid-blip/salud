@@ -279,12 +279,65 @@ function filaIndicador(ind) {
 
 // ---------- Vistas ----------
 
+/** Otras fichas que esta persona puede mirar. Salen de la clave `otros_perfiles`
+ * de SU propia planilla (una por línea: "Nombre | ID"), y se recuerdan en el
+ * celular para seguir mostrándolas mientras mira la ficha de otro. */
+function otrasFichas() {
+  if (!window.APP_CONFIG.VIENDO_OTRA) {
+    const lista = String(D.perfil.otros_perfiles || "")
+      .split(/[\n;]+/)
+      .map((l) => l.split("|").map((x) => x.trim()))
+      .filter(([nombre, id]) => nombre && /^[\w-]{25,80}$/.test(id || ""))
+      .map(([nombre, id]) => ({ nombre, id }));
+    try {
+      localStorage.setItem("salud_fichas", JSON.stringify({ propia: String(D.perfil.nombre || "Mi ficha").split(" ")[0], lista }));
+    } catch {}
+  }
+  try {
+    return JSON.parse(localStorage.getItem("salud_fichas") || "null") || { propia: "Mi ficha", lista: [] };
+  } catch {
+    return { propia: "Mi ficha", lista: [] };
+  }
+}
+
+function cambiarFicha(id) {
+  try {
+    if (!id || id === window.APP_CONFIG.PLANILLA_PROPIA) sessionStorage.removeItem("salud_ver");
+    else sessionStorage.setItem("salud_ver", id);
+  } catch {}
+  location.hash = "inicio";
+  location.reload();
+}
+
+function abrirFichas() {
+  const { propia, lista } = otrasFichas();
+  const actual = window.APP_CONFIG.SPREADSHEET_ID;
+  const fila = (nombre, id, sub) => `<button type="button" class="ficha${id === actual ? " actual" : ""}" data-ficha="${esc(id)}">
+      <span class="ficha-inicial" aria-hidden="true">${esc(nombre.charAt(0).toUpperCase())}</span>
+      <span class="ficha-txt"><strong>${esc(nombre)}</strong><small>${esc(sub)}</small></span>
+      ${id === actual ? `<span class="ficha-marca">Viendo</span>` : ""}
+    </button>`;
+  mostrarHoja(`
+    <p class="det-grupo">Fichas</p>
+    <h2 id="hojaTitulo">¿Qué ficha quieres ver?</h2>
+    <div class="fichas">
+      ${fila(propia, window.APP_CONFIG.PLANILLA_PROPIA, "Mi ficha")}
+      ${lista.map((f) => fila(f.nombre, f.id, "Ficha familiar")).join("")}
+    </div>`);
+}
+
 function pintarHero() {
   const p = D.perfil;
   const nombre = String(p.nombre || "").split(" ")[0];
-  $("saludo").textContent = nombre ? `Hola, ${nombre}` : "Hola";
+  const otra = window.APP_CONFIG.VIENDO_OTRA;
+  document.querySelector(".hero-kicker").textContent = otra ? "Ficha de" : "Mi Salud";
+  $("saludo").textContent = otra ? nombre || "Ficha familiar" : nombre ? `Hola, ${nombre}` : "Hola";
+  document.body.classList.toggle("viendo-otra", otra);
   const act = aFecha(p.actualizado);
-  $("heroChips").innerHTML = act ? `<span class="chip">Actualizado ${esc(fechaLarga(act))}</span>` : "";
+  $("heroChips").innerHTML =
+    (otra ? `<button type="button" class="chip chip-volver" data-ficha="${esc(window.APP_CONFIG.PLANILLA_PROPIA)}">← Volver a mi ficha</button>` : "") +
+    (act ? `<span class="chip">Actualizado ${esc(fechaLarga(act))}</span>` : "");
+  $("btnFichas").hidden = !(otrasFichas().lista.length || otra);
 }
 
 function textoDias(d) {
@@ -897,6 +950,9 @@ function init() {
   document.addEventListener("click", (ev) => {
     const ind = ev.target.closest("[data-analito]");
     if (ind) return abrirIndicador(ind.dataset.analito);
+    const ficha = ev.target.closest("[data-ficha]");
+    if (ficha) return cambiarFicha(ficha.dataset.ficha);
+    if (ev.target.closest("#btnFichas")) return abrirFichas();
     const zona = ev.target.closest("[data-zona]");
     if (zona) return abrirZona(zona.dataset.zona);
     const hab = ev.target.closest("[data-habito]");

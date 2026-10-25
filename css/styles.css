@@ -455,3 +455,16 @@ details > summary::-webkit-details-marker { display: none; }
 }
 .toast.visible { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { .anillo-arco, .meta-check, .toast { transition: none; } }
+
+/* ---------- Fichas familiares ---------- */
+body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8 100%); }
+.chip-volver { border: 0; cursor: pointer; color: #fff; font: inherit; font-size: 13px; font-weight: 700; background: rgba(255, 255, 255, 0.3); }
+.fichas { display: grid; gap: 10px; margin-top: 8px; }
+.ficha { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; background: var(--card); border: 1.5px solid var(--borde); border-radius: 16px; padding: 12px 14px; }
+.ficha:active { background: var(--celeste-suave); }
+.ficha.actual { border-color: var(--azul); background: var(--celeste-suave); }
+.ficha-inicial { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--azul), var(--celeste)); color: #fff; font-weight: 700; font-size: 18px; }
+.ficha-txt { flex: 1; display: grid; }
+.ficha-txt strong { font-size: 16px; }
+.ficha-txt small { font-size: 12px; color: var(--tinta-3); }
+.ficha-marca { font-size: 12px; font-weight: 700; color: var(--azul); }
