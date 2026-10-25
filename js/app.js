@@ -314,6 +314,8 @@ function itemAgenda(a) {
       ${a.detalle ? `<p>${esc(a.detalle)}</p>` : ""}
       <small>${esc(a.tipo || "")}${a._fecha ? ` · ${hecho ? "hecho" : atrasado ? `atrasado (${textoDias(a._fecha)})` : textoDias(a._fecha)}` : ""}</small>
     </div>
+    <button type="button" class="agenda-check" data-agenda-toggle="${D.agenda.indexOf(a)}" role="checkbox" aria-checked="${hecho}"
+      aria-label="${hecho ? "Volver a pendientes" : "Marcar como hecho"}: ${esc(a.titulo)}" title="${hecho ? "Volver a pendientes" : "Marcar como hecho"}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
   </li>`;
 }
 
@@ -576,6 +578,11 @@ function abrirPendiente(i) {
     <div class="det-valor">${pill(atrasado ? "atencion" : "info", a._fecha ? (atrasado ? `Atrasado · ${textoDias(a._fecha)}` : textoDias(a._fecha)) : "Sin fecha")}</div>
     ${a._fecha ? `<p class="det-meta">${esc(fechaLarga(a._fecha))}</p>` : ""}
     ${bloqueDet("Detalle", a.detalle, "det-lectura")}
+    ${
+      norm(a.estado) === "hecho"
+        ? `<button type="button" class="btn-hecho deshacer" data-agenda-toggle="${i}">Volver a pendientes</button>`
+        : `<button type="button" class="btn-hecho" data-agenda-toggle="${i}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Marcar como hecho</button>`
+    }
     <a class="link-mas" href="#plan" data-cerrar>Ver todo el plan</a>`);
 }
 
