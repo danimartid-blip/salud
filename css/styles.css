@@ -502,3 +502,6 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .tabbar a.tab-destacada { color: #7a4cc2; }
 .tabbar a.tab-destacada.activo { color: #6a3cb5; background: #efe7fb; }
 .tabbar a.tab-destacada svg { filter: drop-shadow(0 0 4px rgba(122, 76, 194, 0.35)); }
+.revision-tabs.desliza { overflow-x: auto; scrollbar-width: none; }
+.revision-tabs.desliza::-webkit-scrollbar { display: none; }
+.revision-tabs.desliza .filtro { flex: none; padding: 8px 12px; }

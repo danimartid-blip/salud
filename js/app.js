@@ -811,39 +811,52 @@ function vistaPlan() {
     if (!porMedico.has(p.para)) porMedico.set(p.para, []);
     porMedico.get(p.para).push(p);
   }
-  return `
-  <h2>Agenda y pendientes</h2>
-  <div class="card"><ul class="agenda">${pend.map(itemAgenda).join("") || `<li class="vacio">Nada pendiente.</li>`}</ul></div>
-  ${hechos.length ? `<details class="card plegable"><summary>Ya hecho (${hechos.length})</summary><ul class="agenda">${hechos.map(itemAgenda).join("")}</ul></details>` : ""}
+  const activos = D.diagnosticos.filter((d) => nivelDe(d.nivel) !== "info");
+  const dePaso = D.diagnosticos.filter((d) => nivelDe(d.nivel) === "info");
+  const totalPreguntas = [...porMedico.values()].reduce((n, ps) => n + ps.length, 0);
 
-  <h2>Mis diagnósticos</h2>
-  ${D.diagnosticos.filter((d) => nivelDe(d.nivel) !== "info").map(tarjetaDiagnostico).join("") || `<div class="card"><p class="vacio">Sin diagnósticos activos.</p></div>`}
-  ${
-    D.diagnosticos.some((d) => nivelDe(d.nivel) === "info")
-      ? `<details class="card plegable"><summary>Hallazgos de paso (${D.diagnosticos.filter((d) => nivelDe(d.nivel) === "info").length})</summary>${D.diagnosticos
-          .filter((d) => nivelDe(d.nivel) === "info")
-          .map(tarjetaDiagnostico)
-          .join("")}</details>`
-      : ""
-  }
+  // Una sección a la vez, con botones arriba (igual que en Conclusiones):
+  // Daniel lo pidió porque "tanta información hacia abajo" se perdía.
+  const secciones = [
+    ["pendientes", "Pendientes", pend.length],
+    ["diagnosticos", "Diagnósticos", activos.length],
+    ...(D.habitos.length ? [["habitos", "Hábitos", D.habitos.length]] : []),
+    ["preguntas", "Preguntas", totalPreguntas],
+    ["medicamentos", "Remedios", D.medicamentos.filter((m) => norm(m.estado) === "activo").length],
+    ["bitacora", "Bitácora", D.bitacora.length],
+  ];
+  if (!secciones.some(([id]) => id === subPlan)) subPlan = "pendientes";
+  const botones = subPestanas(secciones, subPlan, "data-sub-plan", true);
 
-  ${D.habitos.length ? `<h2>Hábitos</h2><div class="habitos">${tarjetasHabitos()}</div>` : ""}
+  const contenido = {
+    pendientes: () => `
+      <div class="card"><ul class="agenda">${pend.map(itemAgenda).join("") || `<li class="vacio">Nada pendiente.</li>`}</ul></div>
+      ${hechos.length ? `<details class="card plegable"><summary>Ya hecho (${hechos.length})</summary><ul class="agenda">${hechos.map(itemAgenda).join("")}</ul></details>` : ""}`,
+    diagnosticos: () => `
+      ${activos.map(tarjetaDiagnostico).join("") || `<div class="card"><p class="vacio">Sin diagnósticos activos.</p></div>`}
+      ${dePaso.length ? `<details class="card plegable"><summary>Hallazgos de paso (${dePaso.length})</summary>${dePaso.map(tarjetaDiagnostico).join("")}</details>` : ""}`,
+    habitos: () => `<div class="habitos">${tarjetasHabitos()}</div>`,
+    preguntas: () =>
+      [...porMedico]
+        .map(([m, ps]) => `<div class="card preguntas"><h3>${esc(m)}</h3><ul>${ps.map((p) => `<li>${esc(p.pregunta)}</li>`).join("")}</ul></div>`)
+        .join("") || `<div class="card"><p class="vacio">Sin preguntas pendientes.</p></div>`,
+    medicamentos: () => `<div class="card">${D.medicamentos.map(tarjetaMedicamento).join("") || `<p class="vacio">Sin medicamentos.</p>`}</div>`,
+    bitacora: () => `<div class="card"><ul class="bitacora">${D.bitacora.map((b) => `<li><strong>${esc(fechaLarga(b._fecha))}</strong><p>${esc(b.nota)}</p></li>`).join("") || `<li class="vacio">Sin revisiones.</li>`}</ul></div>`,
+  };
+  return botones + contenido[subPlan]();
+}
 
-  <h2>Preguntas para mis médicos</h2>
-  ${
-    [...porMedico]
-      .map(([m, ps]) => `<div class="card preguntas"><h3>${esc(m)}</h3><ul>${ps.map((p) => `<li>${esc(p.pregunta)}</li>`).join("")}</ul></div>`)
-      .join("") || `<div class="card"><p class="vacio">Sin preguntas pendientes.</p></div>`
-  }
+let subPlan = "pendientes";
 
-  <h2>Medicamentos</h2>
-  <div class="card">${D.medicamentos.map(tarjetaMedicamento).join("") || `<p class="vacio">Sin medicamentos.</p>`}</div>
-
-  <h2>Bitácora</h2>
-  <details class="card plegable">
-    <summary>Historial de revisiones (${D.bitacora.length})</summary>
-    <ul class="bitacora">${D.bitacora.map((b) => `<li><strong>${esc(fechaLarga(b._fecha))}</strong><p>${esc(b.nota)}</p></li>`).join("")}</ul>
-  </details>`;
+/** Barra de sub-pestañas redondeada y fija arriba. Con muchas secciones
+ * (`desliza`), los botones no se reparten el ancho: la barra se desliza. */
+function subPestanas(secciones, actual, atributo, desliza = false) {
+  return `<div class="filtros revision-tabs${desliza ? " desliza" : ""}" role="tablist">${secciones
+    .map(
+      ([id, txt, n]) =>
+        `<button type="button" role="tab" aria-selected="${actual === id}" class="filtro${actual === id ? " activo" : ""}" ${atributo}="${id}">${txt} <span class="sub-cuenta">${n}</span></button>`
+    )
+    .join("")}</div>`;
 }
 
 // ---------- Detalle de un indicador ----------
@@ -965,6 +978,14 @@ function init() {
   document.addEventListener("click", (ev) => {
     const ind = ev.target.closest("[data-analito]");
     if (ind) return abrirIndicador(ind.dataset.analito);
+    const sp = ev.target.closest("[data-sub-plan]");
+    if (sp) {
+      subPlan = sp.dataset.subPlan;
+      pintar();
+      window.scrollTo(0, 0);
+      $("vista-plan").querySelector(".filtro.activo")?.scrollIntoView({ block: "nearest", inline: "center" });
+      return;
+    }
     const ficha = ev.target.closest("[data-ficha]");
     if (ficha) return cambiarFicha(ficha.dataset.ficha);
     if (ev.target.closest("#btnFichas")) return abrirFichas();

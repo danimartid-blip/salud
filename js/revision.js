@@ -123,12 +123,7 @@ function vistaRevision() {
     ["medicos", "Médicos", totalMedicos],
   ];
   if (!secciones.some(([id]) => id === subRevision)) subRevision = "conclusiones";
-  const botones = `<div class="filtros revision-tabs" role="tablist">${secciones
-    .map(
-      ([id, txt, n]) =>
-        `<button type="button" role="tab" aria-selected="${subRevision === id}" class="filtro${subRevision === id ? " activo" : ""}" data-sub-revision="${id}">${txt} <span class="sub-cuenta">${n}</span></button>`
-    )
-    .join("")}</div>`;
+  const botones = subPestanas(secciones, subRevision, "data-sub-revision");
 
   if (subRevision === "conclusiones") return `${botones}
   ${
