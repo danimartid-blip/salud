@@ -517,3 +517,9 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .desliza-wrap.al-inicio::before, .desliza-wrap.al-inicio .sub-flecha.izq,
 .desliza-wrap.al-final::after, .desliza-wrap.al-final .sub-flecha.der { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .sub-flecha.der { animation: none; } }
+/* Gráfico: arrastrar el dedo de lado recorre los puntos; de arriba abajo sigue haciendo scroll. */
+.grafico svg { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.grafico .guia { stroke: var(--azul); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.6; pointer-events: none; }
+.grafico .guia[hidden] { display: none; }
+.grafico .punto-vis { transition: r 0.12s; }
+.grafico .punto-vis.sel { r: 7.5; stroke-width: 2.5; }

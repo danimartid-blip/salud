@@ -218,8 +218,19 @@ function grafico(ind) {
   const margen = (hi - lo || Math.abs(hi) || 1) * 0.15;
   lo -= margen;
   hi += margen;
+  // Eje X por fecha, pero con una separación mínima entre puntos: cuando hay
+  // varias mediciones en pocos días (una hospitalización) quedaban encima unas
+  // de otras y no se podían tocar.
   const t0 = +pts[0]._fecha, t1 = +pts[pts.length - 1]._fecha;
-  const x = (r) => (t1 === t0 ? (L + W - R) / 2 : L + ((+r._fecha - t0) * (W - L - R)) / (t1 - t0));
+  const gap = 0.45 / (pts.length - 1);
+  const pos = [];
+  pts.forEach((r, i) => {
+    const f = t1 === t0 ? i / (pts.length - 1) : (+r._fecha - t0) / (t1 - t0);
+    pos.push(i ? Math.max(f, pos[i - 1] + gap) : 0);
+  });
+  const fin = pos[pos.length - 1] || 1;
+  const posDe = new Map(pts.map((r, i) => [r, pos[i] / fin]));
+  const x = (r) => L + posDe.get(r) * (W - L - R);
   const y = (v) => T + ((hi - v) * (H - T - B)) / (hi - lo);
 
   const yTop = max != null ? y(max) : T;
@@ -240,7 +251,7 @@ function grafico(ind) {
     .map((r, i) => {
       const cls = ESTADOS[r._estado]?.cls || "info";
       const cx = x(r).toFixed(1), cy = y(num(r.valor)).toFixed(1);
-      return `<circle cx="${cx}" cy="${cy}" r="5" class="punto-${cls}" stroke="#fff" stroke-width="2"/>
+      return `<circle cx="${cx}" cy="${cy}" r="5" class="punto-${cls} punto-vis" stroke="#fff" stroke-width="2" data-vis="${i}"/>
         <circle cx="${cx}" cy="${cy}" r="16" fill="transparent" class="punto-toque" tabindex="0" role="button"
           aria-label="${esc(fechaLarga(r._fecha))}: ${esc(fmt(num(r.valor)))} ${esc(r.unidad)}"
           data-tip="${esc(fechaLarga(r._fecha))}|${esc(fmt(num(r.valor)))} ${esc(r.unidad)}|${esc(ESTADOS[r._estado]?.txt || "")}"
@@ -256,6 +267,7 @@ function grafico(ind) {
       <line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" class="base"/>
       ${ejeY}${ejeX}
       <path d="${linea}" fill="none" stroke="var(--linea)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <line class="guia" x1="0" x2="0" y1="${T}" y2="${H - B}" hidden/>
       ${puntos}
     </svg>
     <div class="tip" hidden></div>
@@ -929,6 +941,28 @@ function mostrarTip(el) {
   const x = Number(el.dataset.x);
   tip.style.left = `${Math.max(18, Math.min(82, x))}%`;
   tip.style.top = `${el.dataset.y}%`;
+  // Marca el punto elegido y una línea guía vertical.
+  caja.querySelectorAll(".punto-vis").forEach((p) => p.classList.toggle("sel", p.dataset.vis === el.dataset.i));
+  const guia = caja.querySelector(".guia");
+  if (guia) {
+    guia.setAttribute("x1", el.getAttribute("cx"));
+    guia.setAttribute("x2", el.getAttribute("cx"));
+    guia.removeAttribute("hidden"); // en SVG, `hidden` es solo atributo
+  }
+}
+
+/** Arrastrar el dedo sobre el gráfico va mostrando el punto más cercano. */
+function tipMasCercano(ev) {
+  const svg = ev.target.closest?.(".grafico svg");
+  if (!svg) return;
+  const caja = svg.getBoundingClientRect();
+  const xPct = ((ev.clientX - caja.left) / caja.width) * 100;
+  let mejor = null, dist = Infinity;
+  for (const p of svg.querySelectorAll(".punto-toque")) {
+    const d = Math.abs(Number(p.dataset.x) - xPct);
+    if (d < dist) [mejor, dist] = [p, d];
+  }
+  if (mejor) mostrarTip(mejor);
 }
 
 // ---------- Navegación y arranque ----------
@@ -1044,9 +1078,16 @@ function init() {
     if (p) return mostrarTip(p);
     if (ev.target === $("hojaFondo") || ev.target.closest("#hojaCerrar")) cerrarHoja();
   });
-  document.addEventListener("pointerover", (ev) => {
-    const p = ev.target.closest?.(".punto-toque");
-    if (p) mostrarTip(p);
+  document.addEventListener("pointerdown", (ev) => {
+    const svg = ev.target.closest?.(".grafico svg");
+    if (!svg) return;
+    svg.setPointerCapture?.(ev.pointerId);
+    tipMasCercano(ev);
+  });
+  document.addEventListener("pointermove", (ev) => {
+    // Con el dedo, solo mientras está apoyado; con el mouse, basta pasar por encima.
+    if (ev.pointerType !== "mouse" && !ev.buttons && ev.pressure === 0) return;
+    tipMasCercano(ev);
   });
   document.addEventListener("focusin", (ev) => {
     if (ev.target.classList?.contains("punto-toque")) mostrarTip(ev.target);
