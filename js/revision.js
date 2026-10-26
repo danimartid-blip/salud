@@ -118,7 +118,7 @@ function vistaRevision() {
 
   const totalMedicos = [...porMedico.values()].reduce((n, ps) => n + ps.length, 0);
   const secciones = [
-    ["conclusiones", "Conclusiones", conclusiones.length],
+    ["conclusiones", "Resumen", conclusiones.length],
     ...(D.familia.length ? [["familia", "Familia", sinResponder.length]] : []),
     ["medicos", "Médicos", totalMedicos],
   ];

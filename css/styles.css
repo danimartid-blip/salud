@@ -489,11 +489,16 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .familia-respuesta small { color: var(--tinta-2); font-size: 12px; }
 .familia .btn-primary { padding: 10px 20px; }
 .btn-texto { background: none; border: 0; color: var(--azul); font-weight: 600; font-size: 14px; cursor: pointer; padding: 6px 0; justify-self: start; }
-.revision-tabs { position: sticky; top: 0; z-index: 5; background: var(--fondo, #f3f9fd); margin: 0 -4px 12px; padding: 10px 4px 8px; }
+.revision-tabs { position: sticky; top: 8px; z-index: 5; background: var(--card); border-radius: 999px; box-shadow: var(--sombra); padding: 5px; gap: 4px; margin: 0 0 14px; overflow: visible; }
 .sub-cuenta { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: rgba(0, 121, 200, 0.12); font-size: 12px; }
 .filtro.activo .sub-cuenta { background: rgba(255, 255, 255, 0.25); }
-.revision-tabs .filtro { flex: 1; padding: 7px 8px; text-align: center; }
+.revision-tabs .filtro { flex: 1; padding: 8px 6px; text-align: center; border: 0; background: transparent; }
+.revision-tabs .filtro.activo { background: var(--azul); color: #fff; }
 .aviso-familia { border-left: 5px solid var(--azul); display: grid; gap: 6px; margin-bottom: 14px; }
 .aviso-familia strong { font-size: 14px; color: var(--azul); }
 .aviso-familia-item { display: flex; align-items: center; gap: 8px; width: 100%; background: var(--celeste-suave); border: 0; border-radius: 12px; padding: 10px 12px; font: inherit; font-weight: 600; color: var(--tinta); cursor: pointer; text-align: left; }
 .aviso-familia-item span:first-child { flex: 1; }
+/* Pestaña Conclusiones de la barra (fichas sin metas): otro color para que se note que ahí está lo importante. */
+.tabbar a.tab-destacada { color: #7a4cc2; }
+.tabbar a.tab-destacada.activo { color: #6a3cb5; background: #efe7fb; }
+.tabbar a.tab-destacada svg { filter: drop-shadow(0 0 4px rgba(122, 76, 194, 0.35)); }

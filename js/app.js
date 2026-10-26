@@ -925,7 +925,8 @@ function pintar() {
     if (k === tab) el.innerHTML = VISTAS[k]();
   }
   document.querySelectorAll(".tabbar a").forEach((a) => a.classList.toggle("activo", a.dataset.tab === tab));
-  $("tabMetasTxt").textContent = usaRevision() ? "Revisión" : "Metas";
+  $("tabMetasTxt").textContent = usaRevision() ? "Conclusiones" : "Metas";
+  $("tabMetasTxt").parentElement.classList.toggle("tab-destacada", usaRevision());
   $("pie").hidden = false;
 }
 
