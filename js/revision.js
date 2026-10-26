@@ -9,6 +9,7 @@
 
 let colaFamilia = Promise.resolve();
 let editandoFamilia = null; // id de la pregunta que se está respondiendo
+let subRevision = "conclusiones"; // sección visible: conclusiones | familia | medicos
 
 const usaRevision = () => !D.metas.length && (D.conclusiones.length > 0 || D.familia.length > 0);
 
@@ -44,8 +45,21 @@ function vistaRevision() {
   const respondidas = D.familia.filter((f) => String(f.respuesta ?? "").trim());
   const conclusiones = [...D.conclusiones].sort((a, b) => (num(a.orden) ?? 999) - (num(b.orden) ?? 999));
 
-  return `
-  <h2>Conclusiones</h2>
+  const totalMedicos = [...porMedico.values()].reduce((n, ps) => n + ps.length, 0);
+  const secciones = [
+    ["conclusiones", "Conclusiones", conclusiones.length],
+    ...(D.familia.length ? [["familia", "Familia", sinResponder.length]] : []),
+    ["medicos", "Médicos", totalMedicos],
+  ];
+  if (!secciones.some(([id]) => id === subRevision)) subRevision = "conclusiones";
+  const botones = `<div class="filtros revision-tabs" role="tablist">${secciones
+    .map(
+      ([id, txt, n]) =>
+        `<button type="button" role="tab" aria-selected="${subRevision === id}" class="filtro${subRevision === id ? " activo" : ""}" data-sub-revision="${id}">${txt} <span class="sub-cuenta">${n}</span></button>`
+    )
+    .join("")}</div>`;
+
+  if (subRevision === "conclusiones") return `${botones}
   ${
     conclusiones
       .map((c) => {
@@ -56,18 +70,14 @@ function vistaRevision() {
         </div>`;
       })
       .join("") || `<div class="card"><p class="vacio">Todavía no hay conclusiones.</p></div>`
-  }
+  }`;
 
-  ${
-    D.familia.length
-      ? `<h2>Preguntas para la familia <span class="cuenta">${sinResponder.length} sin responder</span></h2>
-         <p class="familia-intro">Cosas que no están en los papeles. Lo que respondan aquí queda guardado en la ficha y sirve para sacar mejores conclusiones.</p>
-         ${sinResponder.map(tarjetaFamilia).join("")}
-         ${respondidas.length ? `<details class="card plegable"${editandoFamilia && respondidas.some((f) => String(f.id) === editandoFamilia) ? " open" : ""}><summary>Ya respondidas (${respondidas.length})</summary>${respondidas.map(tarjetaFamilia).join("")}</details>` : ""}`
-      : ""
-  }
+  if (subRevision === "familia") return `${botones}
+  <p class="familia-intro">Cosas que no están en los papeles. Lo que respondan aquí queda guardado en la ficha y sirve para sacar mejores conclusiones.</p>
+  ${sinResponder.map(tarjetaFamilia).join("") || `<div class="card"><p class="vacio">¡Todas respondidas, gracias!</p></div>`}
+  ${respondidas.length ? `<details class="card plegable"${editandoFamilia && respondidas.some((f) => String(f.id) === editandoFamilia) ? " open" : ""}><summary>Ya respondidas (${respondidas.length})</summary>${respondidas.map(tarjetaFamilia).join("")}</details>` : ""}`;
 
-  <h2>Preguntas para los médicos</h2>
+  return `${botones}
   ${
     [...porMedico]
       .map(([m, ps]) => `<div class="card preguntas"><h3>${esc(m)}</h3><ul>${ps.map((p) => `<li>${esc(p.pregunta)}</li>`).join("")}</ul></div>`)
@@ -115,6 +125,14 @@ function guardarFamilia(id) {
 }
 
 document.addEventListener("click", (ev) => {
+  const sub = ev.target.closest("[data-sub-revision]");
+  if (sub) {
+    subRevision = sub.dataset.subRevision;
+    editandoFamilia = null;
+    pintar();
+    window.scrollTo(0, 0);
+    return;
+  }
   const ed = ev.target.closest("[data-familia-editar]");
   if (ed) {
     editandoFamilia = ed.dataset.familiaEditar;
