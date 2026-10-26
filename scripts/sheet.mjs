@@ -29,7 +29,7 @@ export const ESQUEMA = {
   Preguntas: ["para", "pregunta", "estado"],
   Bitacora: ["fecha", "nota"],
   // Zonas del cuerpo de la pantalla de inicio. `zona` es una clave fija que la app
-  // sabe ubicar (oidos, tiroides, pulmones, corazon, higado, rinones, sangre,
+  // sabe ubicar (cerebro, ojos, oidos, tiroides, pulmones, corazon, higado, rinones, sangre,
   // digestivo, ingle, huesos); cualquier otra se muestra como etiqueta bajo la figura.
   Cuerpo: ["zona", "titulo", "nivel", "resumen", "que_sigue", "grupos"],
   Habitos: ["nombre", "icono", "nivel", "resumen", "meta", "detalle"],

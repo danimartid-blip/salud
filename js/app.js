@@ -439,6 +439,8 @@ function edadExacta(nac) {
 // frente: el lado derecho del paciente queda a la izquierda de la pantalla.
 // `lado` decide a qué costado va la etiqueta y `ly` su altura.
 const ZONAS = {
+  cerebro: { x: 180, y: 30, lado: "der", ly: 24 },
+  ojos: { x: 189, y: 42, lado: "der", ly: 54 },
   oidos: { x: 160, y: 48, lado: "izq", ly: 44 },
   tiroides: { x: 180, y: 86, lado: "der", ly: 82 },
   pulmones: { x: 163, y: 128, lado: "izq", ly: 122 },
