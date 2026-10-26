@@ -933,18 +933,23 @@ function mostrarTip(el) {
 
 // ---------- Navegación y arranque ----------
 
-// Una ficha sin metas diarias (la de un abuelo) usa ese lugar para la Revisión.
+// Todas las fichas tienen Conclusiones; Metas solo aparece si la ficha tiene metas
+// diarias activas (hoy, solo la de Daniel).
 const VISTAS = {
   inicio: vistaInicio,
   indicadores: vistaIndicadores,
   examenes: vistaExamenes,
-  metas: () => (usaRevision() ? vistaRevision() : vistaMetas()),
+  conclusiones: vistaRevision,
+  metas: vistaMetas,
   plan: vistaPlan,
 };
 
 function pintar() {
   if (!D) return;
-  const tab = VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : "inicio";
+  const conMetas = D.metas.length > 0;
+  let tab = VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : "inicio";
+  if (tab === "metas" && !conMetas) tab = "conclusiones"; // enlaces viejos de las fichas sin metas
+  $("tabMetas").hidden = !conMetas;
   for (const k of Object.keys(VISTAS)) {
     const el = $(`vista-${k}`);
     el.hidden = k !== tab;
@@ -955,8 +960,6 @@ function pintar() {
     b.onscroll = () => actualizarFlechas(b);
     actualizarFlechas(b);
   });
-  $("tabMetasTxt").textContent = usaRevision() ? "Conclusiones" : "Metas";
-  $("tabMetasTxt").parentElement.classList.toggle("tab-destacada", usaRevision());
   $("pie").hidden = false;
 }
 

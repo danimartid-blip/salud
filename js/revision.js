@@ -1,5 +1,5 @@
-// Revisión: conclusiones y preguntas, para las fichas que no tienen metas diarias
-// (por ejemplo, las de los abuelos). Ocupa el lugar de la pestaña Metas.
+// Conclusiones: lo que la skill concluye de la ficha, preguntas para la familia y
+// para los médicos. Pestaña presente en todas las fichas.
 //
 // Pestaña "Conclusiones": la mantiene la skill (orden | titulo | nivel | texto).
 // Pestaña "Familia": preguntas que solo la familia puede responder. La skill
@@ -65,7 +65,7 @@ async function buscarRespuestasNuevas() {
     }
   }
   avisosFamilia = avisos;
-  if (avisos.length && location.hash.slice(1) !== "metas") pintar();
+  if (avisos.length && location.hash.slice(1) !== "conclusiones") pintar();
 }
 
 function avisoFamilia() {
@@ -82,7 +82,7 @@ function avisoFamilia() {
   </div>`;
 }
 
-const usaRevision = () => !D.metas.length && (D.conclusiones.length > 0 || D.familia.length > 0);
+
 
 function tarjetaFamilia(f) {
   const resp = String(f.respuesta ?? "").trim();
@@ -119,7 +119,7 @@ function vistaRevision() {
   const totalMedicos = [...porMedico.values()].reduce((n, ps) => n + ps.length, 0);
   const secciones = [
     ["conclusiones", "Resumen", conclusiones.length],
-    ...(D.familia.length ? [["familia", "Familia", sinResponder.length]] : []),
+    ...(D.familia.length ? [["familia", window.APP_CONFIG.VIENDO_OTRA ? "Familia" : "Para ti", sinResponder.length]] : []),
     ["medicos", "Médicos", totalMedicos],
   ];
   if (!secciones.some(([id]) => id === subRevision)) subRevision = "conclusiones";
@@ -140,7 +140,7 @@ function vistaRevision() {
 
   if (subRevision === "familia") marcarVistas();
   if (subRevision === "familia") return `${botones}
-  <p class="familia-intro">Cosas que no están en los papeles. Lo que respondan aquí queda guardado en la ficha y sirve para sacar mejores conclusiones.</p>
+  <p class="familia-intro">${window.APP_CONFIG.VIENDO_OTRA ? "Cosas que no están en los papeles. Lo que respondan aquí queda guardado en la ficha y sirve para sacar mejores conclusiones." : "Preguntas sobre ti que no están en los papeles. Lo que respondas queda guardado en tu ficha y sirve para afinar las conclusiones."}</p>
   ${sinResponder.map(tarjetaFamilia).join("") || `<div class="card"><p class="vacio">¡Todas respondidas, gracias!</p></div>`}
   ${respondidas.length ? `<details class="card plegable"${editandoFamilia && respondidas.some((f) => String(f.id) === editandoFamilia) ? " open" : ""}><summary>Ya respondidas (${respondidas.length})</summary>${respondidas.map(tarjetaFamilia).join("")}</details>` : ""}`;
 
@@ -198,7 +198,7 @@ document.addEventListener("click", (ev) => {
       sessionStorage.setItem("salud_ver", ir.dataset.irFamilia);
       sessionStorage.setItem("salud_ir", "familia");
     } catch {}
-    location.hash = "metas";
+    location.hash = "conclusiones";
     location.reload();
     return;
   }
