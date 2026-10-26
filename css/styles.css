@@ -493,3 +493,7 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .sub-cuenta { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: rgba(0, 121, 200, 0.12); font-size: 12px; }
 .filtro.activo .sub-cuenta { background: rgba(255, 255, 255, 0.25); }
 .revision-tabs .filtro { flex: 1; padding: 7px 8px; text-align: center; }
+.aviso-familia { border-left: 5px solid var(--azul); display: grid; gap: 6px; margin-bottom: 14px; }
+.aviso-familia strong { font-size: 14px; color: var(--azul); }
+.aviso-familia-item { display: flex; align-items: center; gap: 8px; width: 100%; background: var(--celeste-suave); border: 0; border-radius: 12px; padding: 10px 12px; font: inherit; font-weight: 600; color: var(--tinta); cursor: pointer; text-align: left; }
+.aviso-familia-item span:first-child { flex: 1; }

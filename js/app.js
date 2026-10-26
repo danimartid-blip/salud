@@ -592,6 +592,7 @@ function vistaInicio() {
   const peso = num(p.peso_kg), meta = num(p.meta_peso_kg);
 
   return `
+  ${avisoFamilia()}
   <div class="kpis">
     ${
       e
@@ -937,6 +938,7 @@ async function cargar() {
     D = armar(crudo);
     pintarHero();
     pintar();
+    buscarRespuestasNuevas();
   } catch (err) {
     console.error(err);
     $("error").hidden = false;

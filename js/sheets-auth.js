@@ -144,6 +144,17 @@ async function readRange(range) {
   return data.values || [];
 }
 
+/** Lee un rango de OTRA planilla (por ejemplo, la ficha de un abuelo), para
+ * avisar desde la ficha propia que hay respuestas nuevas. */
+async function readRangeDe(spreadsheetId, range) {
+  const token = await getAccessToken();
+  const res = await fetch(`${SHEETS_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Sheets API ${res.status}`);
+  return (await res.json()).values || [];
+}
+
 // Siempre RAW: con USER_ENTERED, Sheets convierte "2026-10-12" en un número de
 // serie de fecha y la fila deja de encontrarse por su texto.
 async function updateRange(range, values) {
@@ -164,4 +175,4 @@ function requireAuthOrRedirect() {
 }
 
 window.SheetsAuth = { getAccessToken, isLoggedIn, logout, requireAuthOrRedirect };
-window.SheetsApi = { readTabs, readRange, updateRange, appendRow };
+window.SheetsApi = { readTabs, readRange, readRangeDe, updateRange, appendRow };

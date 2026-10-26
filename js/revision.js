@@ -10,6 +10,77 @@
 let colaFamilia = Promise.resolve();
 let editandoFamilia = null; // id de la pregunta que se está respondiendo
 let subRevision = "conclusiones"; // sección visible: conclusiones | familia | medicos
+let avisosFamilia = []; // [{ id, nombre, n }] respuestas nuevas en otras fichas
+
+// Si se llegó desde el aviso del inicio, se abre directo en "Familia".
+try {
+  if (sessionStorage.getItem("salud_ir") === "familia") subRevision = "familia";
+  sessionStorage.removeItem("salud_ir");
+} catch {}
+
+// ---------- Aviso de respuestas nuevas ----------
+//
+// Desde la ficha propia, la app mira la pestaña Familia de cada ficha de
+// `otros_perfiles` y cuenta las respuestas escritas por otra persona que este
+// celular todavía no ha visto. "Visto" se guarda en localStorage
+// (`salud_familia_vista`: { idPlanilla: [claves] }) al abrir la sección Familia
+// de esa ficha. La clave incluye el texto, así que editar una respuesta vuelve
+// a avisar.
+
+const claveRespuesta = (id, respuesta) => `${id}|${String(respuesta).trim()}`;
+
+function vistas() {
+  try {
+    return JSON.parse(localStorage.getItem("salud_familia_vista") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function marcarVistas() {
+  const todas = vistas();
+  todas[window.APP_CONFIG.SPREADSHEET_ID] = D.familia
+    .filter((f) => String(f.respuesta ?? "").trim())
+    .map((f) => claveRespuesta(f.id, f.respuesta));
+  try {
+    localStorage.setItem("salud_familia_vista", JSON.stringify(todas));
+  } catch {}
+}
+
+async function buscarRespuestasNuevas() {
+  if (window.APP_CONFIG.VIENDO_OTRA || !window.SheetsApi?.readRangeDe) return;
+  const { propia, lista } = otrasFichas();
+  const vistasYa = vistas();
+  const avisos = [];
+  for (const { nombre, id } of lista) {
+    try {
+      const filas = await window.SheetsApi.readRangeDe(id, "Familia!A2:G");
+      const ya = new Set(vistasYa[id] || []);
+      const n = filas.filter(
+        (f) => String(f[4] ?? "").trim() && String(f[5] ?? "").trim() !== propia && !ya.has(claveRespuesta(f[0], f[4]))
+      ).length;
+      if (n) avisos.push({ id, nombre, n });
+    } catch (err) {
+      console.warn("No se pudo revisar", nombre, err.message); // sin acceso o sin pestaña: se ignora
+    }
+  }
+  avisosFamilia = avisos;
+  if (avisos.length && location.hash.slice(1) !== "metas") pintar();
+}
+
+function avisoFamilia() {
+  if (!avisosFamilia.length) return "";
+  return `<div class="card aviso-familia">
+    <strong>Respuestas nuevas de la familia</strong>
+    ${avisosFamilia
+      .map(
+        (a) => `<button type="button" class="aviso-familia-item" data-ir-familia="${esc(a.id)}">
+          <span>${esc(a.nombre)}</span><span class="sub-cuenta">${a.n} nueva${a.n > 1 ? "s" : ""}</span><span aria-hidden="true">›</span>
+        </button>`
+      )
+      .join("")}
+  </div>`;
+}
 
 const usaRevision = () => !D.metas.length && (D.conclusiones.length > 0 || D.familia.length > 0);
 
@@ -72,6 +143,7 @@ function vistaRevision() {
       .join("") || `<div class="card"><p class="vacio">Todavía no hay conclusiones.</p></div>`
   }`;
 
+  if (subRevision === "familia") marcarVistas();
   if (subRevision === "familia") return `${botones}
   <p class="familia-intro">Cosas que no están en los papeles. Lo que respondan aquí queda guardado en la ficha y sirve para sacar mejores conclusiones.</p>
   ${sinResponder.map(tarjetaFamilia).join("") || `<div class="card"><p class="vacio">¡Todas respondidas, gracias!</p></div>`}
@@ -125,6 +197,16 @@ function guardarFamilia(id) {
 }
 
 document.addEventListener("click", (ev) => {
+  const ir = ev.target.closest("[data-ir-familia]");
+  if (ir) {
+    try {
+      sessionStorage.setItem("salud_ver", ir.dataset.irFamilia);
+      sessionStorage.setItem("salud_ir", "familia");
+    } catch {}
+    location.hash = "metas";
+    location.reload();
+    return;
+  }
   const sub = ev.target.closest("[data-sub-revision]");
   if (sub) {
     subRevision = sub.dataset.subRevision;
