@@ -851,14 +851,27 @@ let subPlan = "pendientes";
 /** Barra de sub-pestañas redondeada y fija arriba. Con muchas secciones
  * (`desliza`), los botones no se reparten el ancho: la barra se desliza. */
 function subPestanas(secciones, actual, atributo, desliza = false) {
-  return `<div class="filtros revision-tabs${desliza ? " desliza" : ""}" role="tablist">${secciones
+  const barra = `<div class="filtros revision-tabs${desliza ? " desliza" : ""}" role="tablist">${secciones
     .map(
       ([id, txt, n]) =>
         `<button type="button" role="tab" aria-selected="${actual === id}" class="filtro${actual === id ? " activo" : ""}" ${atributo}="${id}">${txt} <span class="sub-cuenta">${n}</span></button>`
     )
     .join("")}</div>`;
+  if (!desliza) return barra;
+  // Flechas y difuminado a los costados para que se note que la barra se desliza.
+  return `<div class="desliza-wrap al-inicio">${barra}
+    <button type="button" class="sub-flecha izq" data-sub-flecha="-1" aria-label="Ver categorías anteriores">‹</button>
+    <button type="button" class="sub-flecha der" data-sub-flecha="1" aria-label="Ver más categorías">›</button>
+  </div>`;
 }
 
+/** Muestra u oculta las flechas según cuánto se haya deslizado la barra. */
+function actualizarFlechas(barra) {
+  const wrap = barra.parentElement;
+  if (!wrap?.classList.contains("desliza-wrap")) return;
+  wrap.classList.toggle("al-inicio", barra.scrollLeft < 4);
+  wrap.classList.toggle("al-final", barra.scrollLeft + barra.clientWidth >= barra.scrollWidth - 4);
+}
 // ---------- Detalle de un indicador ----------
 
 function abrirIndicador(clave) {
@@ -938,6 +951,10 @@ function pintar() {
     if (k === tab) el.innerHTML = VISTAS[k]();
   }
   document.querySelectorAll(".tabbar a").forEach((a) => a.classList.toggle("activo", a.dataset.tab === tab));
+  document.querySelectorAll(".revision-tabs.desliza").forEach((b) => {
+    b.onscroll = () => actualizarFlechas(b);
+    actualizarFlechas(b);
+  });
   $("tabMetasTxt").textContent = usaRevision() ? "Conclusiones" : "Metas";
   $("tabMetasTxt").parentElement.classList.toggle("tab-destacada", usaRevision());
   $("pie").hidden = false;
@@ -978,6 +995,12 @@ function init() {
   document.addEventListener("click", (ev) => {
     const ind = ev.target.closest("[data-analito]");
     if (ind) return abrirIndicador(ind.dataset.analito);
+    const fl = ev.target.closest("[data-sub-flecha]");
+    if (fl) {
+      const barra = fl.parentElement.querySelector(".desliza");
+      barra.scrollBy({ left: Number(fl.dataset.subFlecha) * barra.clientWidth * 0.7, behavior: "smooth" });
+      return;
+    }
     const sp = ev.target.closest("[data-sub-plan]");
     if (sp) {
       subPlan = sp.dataset.subPlan;
