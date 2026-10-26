@@ -42,8 +42,9 @@ window.APP_CONFIG = {
   SPREADSHEET_ID: PLANILLA,
   PLANILLA_PROPIA,
   VIENDO_OTRA: !!PLANILLA_VIENDO,
-  // Lectura y escritura: lo único que la app escribe es la pestaña Registro
-  // (las metas diarias que se marcan). Todo lo demás lo actualiza la skill.
+  // Lectura y escritura: la app escribe solo Registro (metas marcadas), el estado
+  // de los pendientes de Agenda y las respuestas de Familia. Todo lo demás lo
+  // actualiza la skill.
   SCOPES: "https://www.googleapis.com/auth/spreadsheets",
-  TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora", "Cuerpo", "Habitos", "Metas", "Registro"],
+  TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora", "Cuerpo", "Habitos", "Metas", "Registro", "Conclusiones", "Familia"],
 };

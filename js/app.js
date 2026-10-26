@@ -138,6 +138,8 @@ function armar(crudo) {
     metas: aObjetos(crudo.Metas).filter((m) => m.id !== "" && norm(m.activo) !== "no"),
     registro: aObjetos(crudo.Registro),
     habitos: aObjetos(crudo.Habitos),
+    conclusiones: aObjetos(crudo.Conclusiones).filter((c) => c.titulo),
+    familia: conFecha(crudo.Familia).filter((f) => f.id !== "" && f.pregunta),
   };
 }
 
@@ -904,7 +906,14 @@ function mostrarTip(el) {
 
 // ---------- Navegación y arranque ----------
 
-const VISTAS = { inicio: vistaInicio, indicadores: vistaIndicadores, examenes: vistaExamenes, metas: vistaMetas, plan: vistaPlan };
+// Una ficha sin metas diarias (la de un abuelo) usa ese lugar para la Revisión.
+const VISTAS = {
+  inicio: vistaInicio,
+  indicadores: vistaIndicadores,
+  examenes: vistaExamenes,
+  metas: () => (usaRevision() ? vistaRevision() : vistaMetas()),
+  plan: vistaPlan,
+};
 
 function pintar() {
   if (!D) return;
@@ -915,6 +924,7 @@ function pintar() {
     if (k === tab) el.innerHTML = VISTAS[k]();
   }
   document.querySelectorAll(".tabbar a").forEach((a) => a.classList.toggle("activo", a.dataset.tab === tab));
+  $("tabMetasTxt").textContent = usaRevision() ? "Revisión" : "Metas";
   $("pie").hidden = false;
 }
 

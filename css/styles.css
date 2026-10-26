@@ -468,3 +468,24 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .ficha-txt strong { font-size: 16px; }
 .ficha-txt small { font-size: 12px; color: var(--tinta-3); }
 .ficha-marca { font-size: 12px; font-weight: 700; color: var(--azul); }
+
+/* Revisión: conclusiones y preguntas para la familia */
+.conclusion { border-left: 5px solid var(--borde); }
+.conclusion-alerta { border-left-color: var(--alerta); }
+.conclusion-atencion { border-left-color: var(--atencion); }
+.conclusion-ok { border-left-color: var(--ok); }
+.conclusion-info { border-left-color: var(--info); }
+.conclusion-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+.conclusion p { font-size: 14px; line-height: 1.5; color: var(--tinta); }
+.familia-intro { font-size: 13px; color: var(--tinta-2); margin: -4px 4px 12px; }
+.familia { display: grid; gap: 8px; }
+.familia.respondida { box-shadow: none; border: 1px solid var(--borde); }
+.familia-pregunta { font-weight: 600; font-size: 15px; }
+.familia-porque { font-size: 13px; color: var(--tinta-2); }
+.familia-texto { width: 100%; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; font: inherit; resize: vertical; }
+.familia-acciones { display: flex; gap: 10px; align-items: center; }
+.familia-respuesta { background: var(--celeste-suave); border-radius: 12px; padding: 10px 12px; }
+.familia-respuesta p { font-size: 14px; white-space: pre-wrap; }
+.familia-respuesta small { color: var(--tinta-2); font-size: 12px; }
+.familia .btn-primary { padding: 10px 20px; }
+.btn-texto { background: none; border: 0; color: var(--azul); font-weight: 600; font-size: 14px; cursor: pointer; padding: 6px 0; justify-self: start; }

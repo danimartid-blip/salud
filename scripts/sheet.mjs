@@ -38,6 +38,11 @@ export const ESQUEMA = {
   Metas: ["id", "nombre", "icono", "grupo", "meta_semanal", "como", "por_que", "activo"],
   // Lo escribe la app: una fila por día con los ids cumplidos separados por coma.
   Registro: ["fecha", "cumplidas"],
+  // Pestaña Revisión de la app (fichas sin metas diarias): conclusiones de la skill.
+  Conclusiones: ["orden", "titulo", "nivel", "texto"],
+  // Preguntas para la familia. La skill escribe id, para, pregunta y por_que;
+  // la app escribe respuesta, respondido_por y fecha (columnas E a G).
+  Familia: ["id", "para", "pregunta", "por_que", "respuesta", "respondido_por", "fecha"],
 };
 
 const sheets = google.sheets({ version: "v4", auth: getAuth() });
