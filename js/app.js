@@ -138,6 +138,7 @@ function armar(crudo) {
     metas: aObjetos(crudo.Metas).filter((m) => m.id !== "" && norm(m.activo) !== "no"),
     registro: aObjetos(crudo.Registro),
     habitos: aObjetos(crudo.Habitos),
+    pauta: aObjetos(crudo.Pauta).filter((p) => p.titulo),
     conclusiones: aObjetos(crudo.Conclusiones).filter((c) => c.titulo),
     familia: conFecha(crudo.Familia).filter((f) => f.id !== "" && f.pregunta),
   };
@@ -974,7 +975,7 @@ const VISTAS = {
   indicadores: vistaIndicadores,
   examenes: vistaExamenes,
   conclusiones: vistaRevision,
-  metas: vistaMetas,
+  metas: vistaMetasConPauta,
   plan: vistaPlan,
 };
 

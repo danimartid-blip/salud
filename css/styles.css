@@ -523,3 +523,15 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .grafico .guia[hidden] { display: none; }
 .grafico .punto-vis { transition: r 0.12s; }
 .grafico .punto-vis.sel { r: 7.5; stroke-width: 2.5; }
+/* Mi pauta (dentro de Metas) */
+.comida { display: grid; gap: 8px; border-left: 5px solid var(--borde); }
+.comida.ahora { border-left-color: var(--ok); box-shadow: 0 0 0 2px rgba(18, 128, 92, 0.18), var(--sombra); }
+.comida-cab { display: flex; align-items: center; gap: 10px; }
+.comida-cab strong { flex: 1; font-size: 16px; }
+.comida-hora { background: var(--celeste-suave); color: var(--azul); font-weight: 700; font-size: 13px; border-radius: 10px; padding: 4px 8px; }
+.comida-lista { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.45; }
+.chip-lista { border: 0; background: var(--celeste-suave); color: var(--azul); font: inherit; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 8px; cursor: pointer; }
+.fila-lista { display: flex; justify-content: space-between; align-items: center; width: 100%; border: 0; font: inherit; font-weight: 600; color: var(--tinta); text-align: left; cursor: pointer; }
+.fila-lista span:last-child { color: var(--azul); font-size: 20px; }
+.evitar ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+.consejo { font-size: 14px; line-height: 1.5; margin-top: 8px; white-space: pre-line; }

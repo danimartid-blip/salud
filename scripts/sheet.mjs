@@ -43,6 +43,10 @@ export const ESQUEMA = {
   // Preguntas para la familia. La skill escribe id, para, pregunta y por_que;
   // la app escribe respuesta, respondido_por y fecha (columnas E a G).
   Familia: ["id", "para", "pregunta", "por_que", "respuesta", "respondido_por", "fecha"],
+  // Pauta de alimentación de la nutricionista (sub-pestaña "Mi pauta" de Metas).
+  // seccion: comida | lista | evitar | consejo. detalle: una línea por ítem; en
+  // las listas, "Alimento = porción".
+  Pauta: ["seccion", "orden", "titulo", "hora", "detalle"],
 };
 
 const sheets = google.sheets({ version: "v4", auth: getAuth() });
