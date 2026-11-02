@@ -46,5 +46,5 @@ window.APP_CONFIG = {
   // de los pendientes de Agenda y las respuestas de Familia. Todo lo demás lo
   // actualiza la skill.
   SCOPES: "https://www.googleapis.com/auth/spreadsheets",
-  TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora", "Cuerpo", "Habitos", "Metas", "Registro", "Conclusiones", "Familia", "Pauta"],
+  TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora", "Cuerpo", "Habitos", "Metas", "Registro", "Conclusiones", "Familia", "Pauta", "Alimentos", "Comidas"],
 };

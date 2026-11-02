@@ -81,16 +81,15 @@ function abrirLista(n) {
 }
 
 function vistaMetasConPauta() {
-  if (!D.pauta.length) return vistaMetas();
-  const botones = subPestanas(
-    [
-      ["metas", "Metas del día", D.metas.length],
-      ["pauta", "Mi pauta", deSeccion("comida").length],
-    ],
-    subMetas,
-    "data-sub-metas"
-  );
-  return botones + (subMetas === "pauta" ? vistaPauta() : vistaMetas());
+  const secciones = [
+    ["metas", "Metas", D.metas.length],
+    ...(D.alimentos.length ? [["diario", "Diario", Math.round(suma(delDia(ymd(hoyUTC())), "kcal"))]] : []),
+    ...(D.pauta.length ? [["pauta", "Pauta", deSeccion("comida").length]] : []),
+  ];
+  if (secciones.length === 1) return vistaMetas();
+  if (!secciones.some(([id]) => id === subMetas)) subMetas = "metas";
+  const vista = { metas: vistaMetas, diario: vistaDiario, pauta: vistaPauta }[subMetas];
+  return subPestanas(secciones, subMetas, "data-sub-metas") + vista();
 }
 
 document.addEventListener("click", (ev) => {

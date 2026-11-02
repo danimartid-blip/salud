@@ -139,6 +139,10 @@ function armar(crudo) {
     registro: aObjetos(crudo.Registro),
     habitos: aObjetos(crudo.Habitos),
     pauta: aObjetos(crudo.Pauta).filter((p) => p.titulo),
+    alimentos: aObjetos(crudo.Alimentos).filter((a) => a.nombre),
+    comidas: aObjetos(crudo.Comidas)
+      .filter((c) => c.id !== "" && c.alimento)
+      .map((c) => ({ ...c, fecha: c.fecha && typeof c.fecha === "number" ? ymd(aFecha(c.fecha)) : String(c.fecha) })),
     conclusiones: aObjetos(crudo.Conclusiones).filter((c) => c.titulo),
     familia: conFecha(crudo.Familia).filter((f) => f.id !== "" && f.pregunta),
   };

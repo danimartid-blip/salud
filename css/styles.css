@@ -535,3 +535,44 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .fila-lista span:last-child { color: var(--azul); font-size: 20px; }
 .evitar ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
 .consejo { font-size: 14px; line-height: 1.5; margin-top: 8px; white-space: pre-line; }
+/* Diario de comidas (dentro de Metas) */
+.diario-total { display: grid; gap: 8px; background: linear-gradient(135deg, var(--azul) 0%, var(--celeste) 100%); color: #fff; }
+.diario-total.pasado { background: linear-gradient(135deg, #a85f00 0%, #d98a1c 100%); }
+.diario-cifra { font-size: 15px; opacity: 0.95; }
+.diario-cifra b { font-size: 34px; letter-spacing: -0.02em; }
+.diario-cifra span { opacity: 0.8; }
+.diario-barra { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.3); overflow: hidden; }
+.diario-barra i { display: block; height: 100%; background: #fff; border-radius: 999px; }
+.diario-total p { font-size: 13px; opacity: 0.9; }
+.diario-dias .dia small { display: block; font-size: 10px; color: var(--tinta-3); }
+.diario-agregar { width: 100%; justify-self: stretch; margin: 4px 0 6px; }
+.porciones { display: grid; gap: 10px; }
+.porc { position: relative; display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; padding-bottom: 8px; }
+.porc i { position: absolute; left: 0; bottom: 0; height: 5px; border-radius: 999px; background: var(--celeste); }
+.porc::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; border-radius: 999px; background: var(--celeste-suave); z-index: -1; }
+.porc.listo i { background: var(--ok); }
+.porc.sobre i { background: var(--atencion); }
+.porc.sobre .porc-num { color: var(--atencion); }
+.alternativas { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; line-height: 1.45; }
+.diario-comida-cab { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.diario-comida-cab span { color: var(--tinta-2); font-weight: 600; font-size: 14px; }
+.diario-comida ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.diario-comida li { display: flex; align-items: center; gap: 8px; font-size: 14px; border-top: 1px solid var(--borde); padding-top: 6px; }
+.diario-comida li > span:first-child { flex: 1; display: grid; }
+.diario-comida li small { color: var(--tinta-3); font-size: 12px; }
+.diario-kcal { font-weight: 700; color: var(--azul); }
+.diario-borrar { border: 0; background: none; color: var(--tinta-3); font-size: 20px; cursor: pointer; padding: 0 4px; }
+.alta-comidas { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.alta-resultados { display: grid; gap: 6px; max-height: 42vh; overflow-y: auto; }
+.fila-alimento { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; border: 1px solid var(--borde); background: var(--card); border-radius: 12px; padding: 9px 12px; font: inherit; font-size: 14px; color: var(--tinta); cursor: pointer; }
+.fila-alimento span:first-child { display: grid; }
+.fila-alimento small { color: var(--tinta-3); font-size: 12px; }
+.fila-alimento.sel { border-color: var(--azul); background: var(--celeste-suave); }
+.alta-sel { display: grid; margin: 8px 0; }
+.alta-sel small { color: var(--tinta-2); }
+.alta-cant { display: flex; align-items: center; gap: 14px; }
+.alta-cant button { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--celeste-suave); color: var(--azul); font-size: 22px; font-weight: 700; cursor: pointer; }
+.alta-total { font-weight: 700; color: var(--azul); margin: 8px 0; }
+#altaDetalle:not(:empty) { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--borde); display: grid; gap: 4px; }
+.alta-otro { margin-top: 12px; display: grid; gap: 8px; }
+.alta-otro-nums { display: flex; gap: 8px; }

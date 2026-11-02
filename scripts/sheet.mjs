@@ -47,6 +47,10 @@ export const ESQUEMA = {
   // seccion: comida | lista | evitar | consejo. detalle: una línea por ítem; en
   // las listas, "Alimento = porción".
   Pauta: ["seccion", "orden", "titulo", "hora", "detalle"],
+  // Diario de comidas. Alimentos: cada fila es UNA porción (la mantiene la skill).
+  // Comidas: lo que se comió; la escribe la app y también la skill.
+  Alimentos: ["nombre", "grupo", "porcion", "kcal", "proteina_g", "fodmap"],
+  Comidas: ["id", "fecha", "hora", "comida", "alimento", "grupo", "porciones", "kcal", "proteina_g", "nota"],
 };
 
 const sheets = google.sheets({ version: "v4", auth: getAuth() });
