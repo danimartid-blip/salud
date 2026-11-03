@@ -49,8 +49,10 @@ export const ESQUEMA = {
   Pauta: ["seccion", "orden", "titulo", "hora", "detalle"],
   // Diario de comidas. Alimentos: cada fila es UNA porción (la mantiene la skill).
   // Comidas: lo que se comió; la escribe la app y también la skill.
-  Alimentos: ["nombre", "grupo", "porcion", "kcal", "proteina_g", "fodmap"],
-  Comidas: ["id", "fecha", "hora", "comida", "alimento", "grupo", "porciones", "kcal", "proteina_g", "nota"],
+  // rompe: ids de las metas de Metas que ese alimento no cumple (ej. "harinas"),
+  // separados por coma. Con eso la app marca sola las metas de alimentación.
+  Alimentos: ["nombre", "grupo", "porcion", "kcal", "proteina_g", "fodmap", "rompe"],
+  Comidas: ["id", "fecha", "hora", "comida", "alimento", "grupo", "porciones", "kcal", "proteina_g", "nota", "rompe"],
 };
 
 const sheets = google.sheets({ version: "v4", auth: getAuth() });

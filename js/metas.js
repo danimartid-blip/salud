@@ -32,7 +32,28 @@ function reg() {
   return registro;
 }
 
-const hechaEn = (id, k) => !!reg().get(k)?.has(String(id));
+// Metas de alimentación que salen solas del Diario (pestaña Comidas, ver diario.js).
+// Cada regla devuelve true/false, o null cuando lo anotado ese día no alcanza
+// para saberlo; en ese caso vale lo marcado a mano en Registro.
+const enComida = (fs, c) => fs.filter((f) => norm(f.comida) === c);
+const almuerzoYCena = (fs) => enComida(fs, "almuerzo").length > 0 && enComida(fs, "cena").length > 0;
+const sinRomper = (id) => (fs) => (fs.some((f) => rompeDe(f).includes(id)) ? false : almuerzoYCena(fs) ? true : null);
+const conVerdura = (fs) => fs.some((f) => norm(f.grupo).startsWith("verdura"));
+const REGLAS_DIARIO = {
+  harinas: sinRomper("harinas"),
+  bebidas: sinRomper("bebidas"),
+  azucar: sinRomper("azucar"),
+  frituras: sinRomper("frituras"),
+  verduras: (fs) => (almuerzoYCena(fs) ? conVerdura(enComida(fs, "almuerzo")) && conVerdura(enComida(fs, "cena")) : null),
+};
+
+/** true/false si el Diario decide esa meta ese día; null si no. */
+function segunDiario(id, k) {
+  const regla = REGLAS_DIARIO[String(id)];
+  return regla && D.comidas?.length ? regla(delDia(k)) : null;
+}
+
+const hechaEn = (id, k) => segunDiario(id, k) ?? !!reg().get(k)?.has(String(id));
 const hechasEn = (k) => D.metas.filter((m) => hechaEn(m.id, k)).length;
 // Un día "cuenta" con el 60 % de las metas: algunas son de 2 o 5 veces por
 // semana, así que pedir todas todos los días sería una racha imposible.
@@ -122,17 +143,18 @@ function vistaMetas() {
   }
   const fila = (m) => {
     const hecha = hechaEn(m.id, sel), veces = vecesEnSemana(m, lunes), ms = metaSemanal(m);
+    const auto = segunDiario(m.id, sel) != null;
     const puntos = Array.from({ length: 7 }, (_, i) => {
       const k = ymd(masDias(lunes, i));
       return `<i class="${hechaEn(m.id, k) ? "si" : ""}${k === hoyK ? " hoy" : ""}"></i>`;
     }).join("");
-    return `<div class="meta${hecha ? " hecha" : ""}">
-      <button type="button" class="meta-check" data-meta-toggle="${esc(m.id)}" role="checkbox" aria-checked="${hecha}" aria-label="${esc(m.nombre)}">
+    return `<div class="meta${hecha ? " hecha" : ""}${auto ? " auto" : ""}">
+      <button type="button" class="meta-check" data-meta-toggle="${esc(m.id)}" role="checkbox" aria-checked="${hecha}" aria-label="${esc(m.nombre)}${auto ? " (según tu diario)" : ""}">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
       </button>
       <button type="button" class="meta-cuerpo" data-meta-info="${esc(m.id)}">
         <span class="meta-icono">${iconoMeta(m.icono)}</span>
-        <span class="meta-txt"><strong>${esc(m.nombre)}</strong><span class="meta-puntos" aria-hidden="true">${puntos}</span></span>
+        <span class="meta-txt"><strong>${esc(m.nombre)}</strong>${auto ? `<small class="meta-auto">según tu diario</small>` : ""}<span class="meta-puntos" aria-hidden="true">${puntos}</span></span>
         <span class="meta-sem${veces >= ms ? " ok" : ""}">${veces}/${ms}<small>semana</small></span>
       </button>
     </div>`;
@@ -193,6 +215,7 @@ function abrirMeta(id) {
     <div class="det-valor"><span class="det-num">${veces}</span><span class="det-unidad">de ${ms} esta semana</span></div>
     <p class="det-meta">Meta: ${ms === 7 ? "todos los días" : `${ms} ${ms === 1 ? "vez" : "veces"} por semana`} · ${en30} de los últimos 30 días</p>
     <div class="meta-30" aria-hidden="true">${puntos}</div>
+    ${REGLAS_DIARIO[String(m.id)] ? bloqueDet("Se marca sola", "Cuando anotas el almuerzo y la cena en el Diario, esta meta se calcula con lo que comiste. Los días sin diario la marcas tú.") : ""}
     ${bloqueDet("Qué cuenta como cumplido", m.como)}
     ${bloqueDet("Por qué ayuda a tu hígado", m.por_que, "det-lectura")}`);
 }
@@ -226,6 +249,7 @@ async function guardarDia(k) {
 
 function alternarMeta(id) {
   const k = metasDia, mapa = reg();
+  if (segunDiario(id, k) != null) return showToast("Esta se marca sola con lo que anotaste en el Diario.");
   if (!mapa.has(k)) mapa.set(k, new Set());
   const set = mapa.get(k), estaba = set.has(String(id));
   estaba ? set.delete(String(id)) : set.add(String(id));

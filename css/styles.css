@@ -560,6 +560,11 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .diario-comida li { display: flex; align-items: center; gap: 8px; font-size: 14px; border-top: 1px solid var(--borde); padding-top: 6px; }
 .diario-comida li > span:first-child { flex: 1; display: grid; }
 .diario-comida li small { color: var(--tinta-3); font-size: 12px; }
+.diario-comida li small.rompe { color: var(--alerta); font-weight: 600; }
+.alta-rompe-tit { margin: 4px 0 0; font-size: 13px; color: var(--tinta-2); }
+.meta-auto { font-size: 11.5px; color: var(--tinta-3); margin-top: -3px; }
+.meta.auto .meta-check { border-style: dashed; }
+.meta.auto.hecha .meta-check { border-style: solid; }
 .diario-kcal { font-weight: 700; color: var(--azul); }
 .diario-borrar { border: 0; background: none; color: var(--tinta-3); font-size: 20px; cursor: pointer; padding: 0 4px; }
 .alta-comidas { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }

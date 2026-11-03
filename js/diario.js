@@ -1,11 +1,13 @@
 // Diario de comidas: anotar lo que se come y ver el total del día contra la pauta.
 // Sub-pestaña "Diario" dentro de Metas.
 //
-// Pestaña "Alimentos" (la mantiene la skill): nombre | grupo | porcion | kcal | proteina_g | fodmap
+// Pestaña "Alimentos" (la mantiene la skill): nombre | grupo | porcion | kcal | proteina_g | fodmap | rompe
 //   Cada fila es UNA porción del sistema de intercambio. grupo: cereal, proteico,
 //   lacteo, fruta, verdura_a, verdura_b, grasa, aceite, libre, extra.
 // Pestaña "Comidas" (la escribe la app, y también la skill cuando se le cuenta una
-//   comida en el chat): id | fecha | hora | comida | alimento | grupo | porciones | kcal | proteina_g | nota
+//   comida en el chat): id | fecha | hora | comida | alimento | grupo | porciones | kcal | proteina_g | nota | rompe
+//   rompe: ids de metas que ese alimento no cumple ("harinas", "frituras"…). Con
+//   eso metas.js marca solas las metas de alimentación (REGLAS_DIARIO).
 // Perfil: meta_kcal (número) y meta_porciones ("cereal=4; proteico=4; …").
 //
 // Se carga antes de app.js y usa sus helpers recién al ejecutarse.
@@ -52,6 +54,15 @@ function metaPorciones() {
 }
 
 const delDia = (k) => D.comidas.filter((c) => c.fecha === k);
+const rompeDe = (f) => String(f.rompe ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+// Lo que se puede marcar a mano en "Otro alimento".
+const ROMPE_OTRO = [
+  ["harinas", "Harina blanca"],
+  ["frituras", "Frito o comida rápida"],
+  ["bebidas", "Bebida o jugo con azúcar"],
+  ["azucar", "Té o café con azúcar"],
+];
+const nombreMeta = (id) => D.metas.find((m) => String(m.id) === id)?.nombre || id;
 const suma = (filas, campo) => filas.reduce((s, f) => s + (num(f[campo]) || 0), 0);
 const redondo = (n) => Math.round(n * 10) / 10;
 
@@ -122,7 +133,7 @@ function vistaDiario() {
         ([c, fs]) => `<div class="card diario-comida"><div class="diario-comida-cab"><strong>${esc(c)}</strong><span>${Math.round(suma(fs, "kcal"))} kcal</span></div>
         <ul>${fs
           .map(
-            (f) => `<li><span>${esc(f.alimento)}${num(f.porciones) && norm(f.grupo) !== "extra" && norm(f.grupo) !== "libre" ? ` <small>${fmt(num(f.porciones))} ${esc(GRUPOS[norm(f.grupo)] || "")}</small>` : ""}${f.nota ? `<small class="nota">${esc(f.nota)}</small>` : ""}</span>
+            (f) => `<li><span>${esc(f.alimento)}${num(f.porciones) && norm(f.grupo) !== "extra" && norm(f.grupo) !== "libre" ? ` <small>${fmt(num(f.porciones))} ${esc(GRUPOS[norm(f.grupo)] || "")}</small>` : ""}${f.nota ? `<small class="nota">${esc(f.nota)}</small>` : ""}${rompeDe(f).map((id) => `<small class="rompe">✕ ${esc(nombreMeta(id))}</small>`).join("")}</span>
             <span class="diario-kcal">${Math.round(num(f.kcal) || 0)}</span>
             <button type="button" class="diario-borrar" data-diario-borrar="${esc(f.id)}" aria-label="Borrar ${esc(f.alimento)}">×</button></li>`
           )
@@ -178,6 +189,8 @@ function abrirAlta() {
     <details class="card plegable alta-otro"><summary>Otro alimento (escribir a mano)</summary>
       <input id="otroNombre" class="buscar" placeholder="Nombre y cantidad">
       <div class="alta-otro-nums"><input id="otroKcal" class="buscar" inputmode="numeric" placeholder="kcal"><input id="otroProt" class="buscar" inputmode="numeric" placeholder="proteína (g)"></div>
+      <p class="alta-rompe-tit">¿Tenía algo de esto?</p>
+      <div class="alta-comidas">${ROMPE_OTRO.map(([id, t]) => `<button type="button" class="filtro" data-alta-rompe="${id}">${t}</button>`).join("")}</div>
       <button type="button" class="btn-primary" data-alta-otro>Guardar</button>
     </details>`);
 }
@@ -198,7 +211,7 @@ function guardarComida(fila) {
   cerrarHoja();
   pintar();
   showToast(`Anotado: ${Math.round(num(f.kcal) || 0)} kcal`);
-  const orden = ["id", "fecha", "hora", "comida", "alimento", "grupo", "porciones", "kcal", "proteina_g", "nota"];
+  const orden = ["id", "fecha", "hora", "comida", "alimento", "grupo", "porciones", "kcal", "proteina_g", "nota", "rompe"];
   colaComidas = colaComidas
     .then(() => window.SheetsApi?.appendRow && window.SheetsApi.appendRow("Comidas!A1", orden.map((c) => f[c] ?? "")))
     .catch((err) => {
@@ -221,7 +234,7 @@ function borrarComida(id) {
       const ids = await window.SheetsApi.readRange("Comidas!A2:A");
       const i = ids.findIndex((r) => String(r[0] ?? "") === String(id));
       if (i < 0) return;
-      await window.SheetsApi.updateRange(`Comidas!A${i + 2}:J${i + 2}`, [Array(10).fill("")]);
+      await window.SheetsApi.updateRange(`Comidas!A${i + 2}:K${i + 2}`, [Array(11).fill("")]);
     })
     .catch((err) => {
       console.error(err);
@@ -246,6 +259,8 @@ document.addEventListener("click", (ev) => {
     document.querySelectorAll("[data-alta-comida]").forEach((x) => x.classList.toggle("activo", x === ac));
     return;
   }
+  const ar = t("[data-alta-rompe]");
+  if (ar) return ar.classList.toggle("activo");
   const al = t("[data-alimento]");
   if (al) {
     altaSel = D.alimentos[Number(al.dataset.alimento)];
@@ -269,13 +284,15 @@ document.addEventListener("click", (ev) => {
       kcal: Math.round((num(a.kcal) || 0) * altaCant),
       proteina_g: Math.round((num(a.proteina_g) || 0) * altaCant),
       nota: "",
+      rompe: rompeDe(a).join(","),
     });
   }
   if (t("[data-alta-otro]")) {
     const nombre = $("otroNombre").value.trim();
     const kcal = num($("otroKcal").value.replace(",", "."));
     if (!nombre || kcal == null) return showToast("Escribe el nombre y las kcal.");
-    return guardarComida({ alimento: nombre, grupo: "extra", porciones: "", kcal, proteina_g: num($("otroProt").value.replace(",", ".")) ?? "", nota: "" });
+    const rompe = [...document.querySelectorAll("[data-alta-rompe].activo")].map((x) => x.dataset.altaRompe).join(",");
+    return guardarComida({ alimento: nombre, grupo: "extra", porciones: "", kcal, proteina_g: num($("otroProt").value.replace(",", ".")) ?? "", nota: "", rompe });
   }
 });
 
