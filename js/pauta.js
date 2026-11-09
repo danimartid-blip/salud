@@ -1,5 +1,5 @@
 // Pauta de alimentación: la que entregó la nutricionista, para seguirla día a día.
-// Vive como sub-pestaña "Mi pauta" dentro de Metas.
+// Vive como sub-pestaña "Pauta" de Nutrición.
 //
 // Pestaña "Pauta" (la mantiene la skill): seccion | orden | titulo | hora | detalle
 //   seccion: comida | lista | evitar | consejo
@@ -9,7 +9,6 @@
 //
 // Se carga antes de app.js y usa sus helpers recién al ejecutarse.
 
-let subMetas = "metas"; // metas | pauta
 
 const lineas = (t) => String(t ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
 const deSeccion = (s) => D.pauta.filter((p) => norm(p.seccion) === s).sort((a, b) => (num(a.orden) ?? 999) - (num(b.orden) ?? 999));
@@ -80,26 +79,7 @@ function abrirLista(n) {
     <div class="tabla-scroll"><table class="tabla"><thead><tr><th>Alimento</th><th class="n">1 porción</th></tr></thead><tbody>${filas}</tbody></table></div>`);
 }
 
-function vistaMetasConPauta() {
-  const secciones = [
-    ["metas", "Metas", D.metas.length],
-    ...(D.alimentos.length ? [["diario", "Diario", Math.round(suma(delDia(ymd(hoyUTC())), "kcal"))]] : []),
-    ...(D.pauta.length ? [["pauta", "Pauta", deSeccion("comida").length]] : []),
-  ];
-  if (secciones.length === 1) return vistaMetas();
-  if (!secciones.some(([id]) => id === subMetas)) subMetas = "metas";
-  const vista = { metas: vistaMetas, diario: vistaDiario, pauta: vistaPauta }[subMetas];
-  return subPestanas(secciones, subMetas, "data-sub-metas") + vista();
-}
-
 document.addEventListener("click", (ev) => {
-  const sm = ev.target.closest("[data-sub-metas]");
-  if (sm) {
-    subMetas = sm.dataset.subMetas;
-    pintar();
-    window.scrollTo(0, 0);
-    return;
-  }
   const li = ev.target.closest("[data-lista]");
   if (li) abrirLista(li.dataset.lista);
 });

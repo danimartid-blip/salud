@@ -581,3 +581,27 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 #altaDetalle:not(:empty) { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--borde); display: grid; gap: 4px; }
 .alta-otro { margin-top: 12px; display: grid; gap: 8px; }
 .alta-otro-nums { display: flex; gap: 8px; }
+
+/* ---------- Despensa ---------- */
+.desp-urgente { border-left: 5px solid var(--atencion-marca); display: grid; gap: 8px; }
+.desp-urgente.vencido { border-left-color: var(--alerta); }
+.desp-urgente ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.desp-urgente li { display: flex; justify-content: space-between; gap: 10px; }
+.desp-urgente li small { color: var(--tinta-3); font-size: 12px; }
+.desp-urgente li > span:last-child { color: var(--tinta-2); font-weight: 600; white-space: nowrap; }
+.desp-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.desp-item { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--borde); padding-top: 8px; }
+.desp-item:first-child { border-top: 0; padding-top: 0; }
+.desp-nombre { flex: 1 1 140px; display: grid; gap: 2px; min-width: 0; font-size: 14px; }
+.desp-nombre small { color: var(--tinta-3); font-size: 12px; }
+.desp-nombre .pill { justify-self: start; }
+.desp-cant { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.desp-cant button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--celeste-suave); color: var(--azul); font-size: 18px; font-weight: 700; cursor: pointer; }
+.desp-agotado { border: 1px solid var(--borde); background: var(--card); color: var(--tinta-2); border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.desp-form { display: grid; gap: 8px; }
+.desp-form select { appearance: auto; }
+.en-casa { color: var(--ok); font-weight: 600; }
+.diario-resumen { font-size: 14px; color: var(--tinta-2); margin: 4px 2px 10px; }
+.diario-resumen b { color: var(--tinta); }
+/* Con siete pestañas, la barra se aprieta un poco en celulares angostos. */
+@media (max-width: 400px) { .tabbar a { font-size: 10px; letter-spacing: -0.01em; } }

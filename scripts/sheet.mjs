@@ -53,6 +53,11 @@ export const ESQUEMA = {
   // separados por coma. Con eso la app marca sola las metas de alimentación.
   Alimentos: ["nombre", "grupo", "porcion", "kcal", "proteina_g", "fodmap", "rompe"],
   Comidas: ["id", "fecha", "hora", "comida", "alimento", "grupo", "porciones", "kcal", "proteina_g", "nota", "rompe"],
+  // Lo que hay en la casa (sub-pestaña "Despensa" de Metas). La escriben la app y la skill.
+  // lugar: Refri | Congelador | Despensa. grupo: el de la pauta. El vencimiento va en
+  // nota como "Vence DD-MM-AAAA". La app cambia cantidad y actualizado buscando la fila
+  // por id, y deja la fila en blanco cuando se agota: nunca reescribirla entera.
+  Despensa: ["id", "alimento", "cantidad", "unidad", "lugar", "grupo", "actualizado", "nota"],
 };
 
 const sheets = google.sheets({ version: "v4", auth: getAuth() });

@@ -143,6 +143,9 @@ function armar(crudo) {
     comidas: aObjetos(crudo.Comidas)
       .filter((c) => c.id !== "" && c.alimento)
       .map((c) => ({ ...c, fecha: c.fecha && typeof c.fecha === "number" ? ymd(aFecha(c.fecha)) : String(c.fecha) })),
+    // Despensa es opcional: sin la pestaña (fichas de otros) la sub-pestaña no aparece.
+    conDespensa: !!crudo.Despensa?.length,
+    despensa: aObjetos(crudo.Despensa).filter((p) => p.id !== "" && p.alimento),
     conclusiones: aObjetos(crudo.Conclusiones).filter((c) => c.titulo),
     familia: conFecha(crudo.Familia).filter((f) => f.id !== "" && f.pregunta),
   };
@@ -973,22 +976,26 @@ function tipMasCercano(ev) {
 // ---------- Navegación y arranque ----------
 
 // Todas las fichas tienen Conclusiones; Metas solo aparece si la ficha tiene metas
-// diarias activas (hoy, solo la de Daniel).
+// manuales activas, y Nutrición si tiene diario, despensa o pauta (hoy, solo la de Daniel).
 const VISTAS = {
   inicio: vistaInicio,
   indicadores: vistaIndicadores,
   examenes: vistaExamenes,
   conclusiones: vistaRevision,
-  metas: vistaMetasConPauta,
+  nutricion: vistaNutricion,
+  metas: vistaMetas,
   plan: vistaPlan,
 };
 
 function pintar() {
   if (!D) return;
-  const conMetas = D.metas.length > 0;
+  const conMetas = metasManuales().length > 0;
+  const conNutri = hayNutricion();
   let tab = VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : "inicio";
   if (tab === "metas" && !conMetas) tab = "conclusiones"; // enlaces viejos de las fichas sin metas
+  if (tab === "nutricion" && !conNutri) tab = "inicio";
   $("tabMetas").hidden = !conMetas;
+  $("tabNutricion").hidden = !conNutri;
   for (const k of Object.keys(VISTAS)) {
     const el = $(`vista-${k}`);
     el.hidden = k !== tab;
@@ -1002,12 +1009,24 @@ function pintar() {
   $("pie").hidden = false;
 }
 
+/** Las pestañas de siempre en una petición, y las opcionales aparte: si una
+ * planilla no tiene una opcional, batchGet fallaría entera. */
+async function leerPlanilla() {
+  const leerOpcional = (tab) => window.SheetsApi.readRange(`${tab}!A1:Z`).catch(() => []);
+  const [crudo, ...extras] = await Promise.all([
+    window.SheetsApi.readTabs(window.APP_CONFIG.TABS),
+    ...window.APP_CONFIG.TABS_OPCIONALES.map(leerOpcional),
+  ]);
+  window.APP_CONFIG.TABS_OPCIONALES.forEach((t, i) => (crudo[t] = extras[i]));
+  return crudo;
+}
+
 async function cargar() {
   $("error").hidden = true;
   $("cargando").hidden = false;
   try {
     // __DATOS_PRUEBA__ solo existe en la vista previa local (archivo fuera del repo).
-    const crudo = window.__DATOS_PRUEBA__ || (await window.SheetsApi.readTabs(window.APP_CONFIG.TABS));
+    const crudo = window.__DATOS_PRUEBA__ || (await leerPlanilla());
     D = armar(crudo);
     pintarHero();
     pintar();

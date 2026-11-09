@@ -14,8 +14,9 @@ y el plan de controles. Se puede instalar en el celular como app.
 ## Pestañas de la planilla
 
 `Perfil`, `Resultados`, `Indicadores`, `Examenes`, `Diagnosticos`,
-`Medicamentos`, `Agenda`, `Preguntas`, `Bitacora`. Las columnas de cada una
-están en `scripts/sheet.mjs`.
+`Medicamentos`, `Agenda`, `Preguntas`, `Bitacora` y las demás de
+`scripts/sheet.mjs`, donde están las columnas de cada una. `Despensa` es
+opcional: si una planilla no la tiene, la app la salta.
 
 ## Publicar un cambio
 

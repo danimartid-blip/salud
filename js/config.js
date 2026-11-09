@@ -43,8 +43,10 @@ window.APP_CONFIG = {
   PLANILLA_PROPIA,
   VIENDO_OTRA: !!PLANILLA_VIENDO,
   // Lectura y escritura: la app escribe solo Registro (metas marcadas), el estado
-  // de los pendientes de Agenda y las respuestas de Familia. Todo lo demás lo
-  // actualiza la skill.
+  // de los pendientes de Agenda, las respuestas de Familia, Comidas y Despensa.
+  // Todo lo demás lo actualiza la skill.
   SCOPES: "https://www.googleapis.com/auth/spreadsheets",
   TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora", "Cuerpo", "Habitos", "Metas", "Registro", "Conclusiones", "Familia", "Pauta", "Alimentos", "Comidas"],
+  // Se leen aparte y pueden faltar en la planilla sin romper la carga.
+  TABS_OPCIONALES: ["Despensa"],
 };

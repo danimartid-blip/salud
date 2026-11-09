@@ -1,5 +1,6 @@
 // Diario de comidas: anotar lo que se come y ver el total del día contra la pauta.
-// Sub-pestaña "Diario" dentro de Metas.
+// Sub-pestaña "Diario" de Nutrición. El resumen del día (kcal, porciones, lo que
+// falta) está en "Hoy", en nutricion.js.
 //
 // Pestaña "Alimentos" (la mantiene la skill): nombre | grupo | porcion | kcal | proteina_g | fodmap | rompe
 //   Cada fila es UNA porción del sistema de intercambio. grupo: cereal, proteico,
@@ -66,43 +67,20 @@ const nombreMeta = (id) => D.metas.find((m) => String(m.id) === id)?.nombre || i
 const suma = (filas, campo) => filas.reduce((s, f) => s + (num(f[campo]) || 0), 0);
 const redondo = (n) => Math.round(n * 10) / 10;
 
+/** Kcal, proteína y porciones usadas de un día. Lo usan Hoy (nutricion.js) y el Diario. */
+function totalesDia(k) {
+  const filas = delDia(k);
+  const usadas = {};
+  for (const f of filas) usadas[norm(f.grupo)] = (usadas[norm(f.grupo)] || 0) + (num(f.porciones) || 0);
+  return { filas, kcal: Math.round(suma(filas, "kcal")), prot: Math.round(suma(filas, "proteina_g")), usadas };
+}
+
 function vistaDiario() {
   const hoyK = ymd(hoyUTC());
   if (!diarioDia) diarioDia = hoyK;
   const k = diarioDia;
-  const filas = delDia(k);
-  const kcal = Math.round(suma(filas, "kcal"));
-  const prot = Math.round(suma(filas, "proteina_g"));
+  const { filas, kcal, prot } = totalesDia(k);
   const metaK = num(D.perfil.meta_kcal);
-  const metas = metaPorciones();
-  const pct = metaK ? Math.min(100, Math.round((kcal / metaK) * 100)) : 0;
-  const pasado = metaK && kcal > metaK;
-
-  const usadas = {};
-  for (const f of filas) usadas[norm(f.grupo)] = (usadas[norm(f.grupo)] || 0) + (num(f.porciones) || 0);
-
-  const barras = Object.entries(metas)
-    .map(([g, meta]) => {
-      const u = redondo(usadas[g] || 0);
-      const cls = u > meta ? "sobre" : u >= meta ? "listo" : "";
-      return `<div class="porc ${cls}"><span>${esc(GRUPOS[g] || g)}</span><span class="porc-num">${fmt(u)} / ${fmt(meta)}</span>
-        <i style="width:${Math.min(100, (u / meta) * 100).toFixed(0)}%"></i></div>`;
-    })
-    .join("");
-
-  // Alternativas: para lo que falta, ejemplos de la lista (primero los bajos en FODMAP).
-  const faltan = Object.entries(metas).filter(([g, meta]) => (usadas[g] || 0) < meta && !["aceite", "libre"].includes(g));
-  const alternativas = faltan
-    .map(([g, meta]) => {
-      const ops = D.alimentos
-        .filter((a) => norm(a.grupo) === g)
-        .sort((a, b) => (norm(a.fodmap) === "bajo" ? 0 : 1) - (norm(b.fodmap) === "bajo" ? 0 : 1))
-        .slice(0, 4);
-      if (!ops.length) return "";
-      const n = redondo(meta - (usadas[g] || 0));
-      return `<li><strong>${fmt(n)} ${esc(GRUPOS[g] || g)}:</strong> ${ops.map((a) => `${esc(a.nombre)} (${esc(a.porcion)})`).join(" · ")}</li>`;
-    })
-    .join("");
 
   const porComida = new Map();
   for (const f of filas) {
@@ -117,15 +95,9 @@ function vistaDiario() {
   });
 
   return `
-  <div class="card diario-total${pasado ? " pasado" : ""}">
-    <div class="diario-cifra"><b>${kcal.toLocaleString("es-CL")}</b> kcal${metaK ? ` <span>de ${metaK.toLocaleString("es-CL")}</span>` : ""}</div>
-    ${metaK ? `<div class="diario-barra"><i style="width:${pct}%"></i></div>` : ""}
-    <p>${prot} g de proteína${metaK ? ` · ${pasado ? `te pasaste por ${(kcal - metaK).toLocaleString("es-CL")} kcal` : `te quedan ${(metaK - kcal).toLocaleString("es-CL")} kcal`}` : ""}</p>
-  </div>
   <div class="dias diario-dias">${dias.join("")}</div>
+  <p class="diario-resumen"><b>${kcal.toLocaleString("es-CL")}</b> kcal${metaK ? ` de ${metaK.toLocaleString("es-CL")}` : ""} · ${prot} g de proteína</p>
   <button type="button" class="btn-primary diario-agregar" data-diario-agregar>+ Agregar lo que comí</button>
-  ${barras ? `<h2>Porciones de la pauta</h2><div class="card porciones">${barras}</div>` : ""}
-  ${k === hoyK && alternativas ? `<h2>Lo que te falta hoy</h2><div class="card"><ul class="alternativas">${alternativas}</ul></div>` : ""}
   <h2>${k === hoyK ? "Hoy comiste" : "Ese día comiste"}</h2>
   ${
     [...porComida]

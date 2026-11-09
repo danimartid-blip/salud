@@ -47,6 +47,11 @@ const REGLAS_DIARIO = {
   verduras: (fs) => (almuerzoYCena(fs) ? conVerdura(enComida(fs, "almuerzo")) && conVerdura(enComida(fs, "cena")) : null),
 };
 
+// Las de alimentación se muestran en Nutrición > Hoy; la pantalla Metas, su anillo,
+// la racha y el avance de la semana cuentan solo las manuales.
+const esDeComida = (m) => !!REGLAS_DIARIO[String(m.id)];
+const metasManuales = () => D.metas.filter((m) => !esDeComida(m));
+
 /** true/false si el Diario decide esa meta ese día; null si no. */
 function segunDiario(id, k) {
   const regla = REGLAS_DIARIO[String(id)];
@@ -54,10 +59,10 @@ function segunDiario(id, k) {
 }
 
 const hechaEn = (id, k) => segunDiario(id, k) ?? !!reg().get(k)?.has(String(id));
-const hechasEn = (k) => D.metas.filter((m) => hechaEn(m.id, k)).length;
+const hechasEn = (k) => metasManuales().filter((m) => hechaEn(m.id, k)).length;
 // Un día "cuenta" con el 60 % de las metas: algunas son de 2 o 5 veces por
 // semana, así que pedir todas todos los días sería una racha imposible.
-const umbral = () => Math.max(1, Math.ceil(D.metas.length * 0.6));
+const umbral = () => Math.max(1, Math.ceil(metasManuales().length * 0.6));
 const metaSemanal = (m) => Math.max(1, Math.min(7, Number(m.meta_semanal) || 7));
 
 function racha() {
@@ -80,7 +85,7 @@ function vecesEnSemana(m, lunes) {
 function avanceSemana() {
   const lunes = lunesDe(hoyUTC());
   let hecho = 0, total = 0;
-  for (const m of D.metas) {
+  for (const m of metasManuales()) {
     total += metaSemanal(m);
     hecho += Math.min(metaSemanal(m), vecesEnSemana(m, lunes));
   }
@@ -116,11 +121,11 @@ function anilloMetas(n, total, tam = 108, grosor = 10) {
 }
 
 function vistaMetas() {
-  if (!D.metas.length) return `<div class="card"><p class="vacio">Todavía no hay metas cargadas.</p></div>`;
+  if (!metasManuales().length) return `<div class="card"><p class="vacio">Todavía no hay metas cargadas.</p></div>`;
   const hoy = hoyUTC(), hoyK = ymd(hoy);
   if (!metasDia || +aFecha(metasDia) > +hoy || +aFecha(metasDia) < +masDias(hoy, -6)) metasDia = hoyK;
   const sel = metasDia, selD = aFecha(sel);
-  const total = D.metas.length, n = hechasEn(sel);
+  const total = metasManuales().length, n = hechasEn(sel);
   const logrado = n >= umbral();
   const r = racha(), sem = Math.round(avanceSemana() * 100);
 
@@ -136,7 +141,7 @@ function vistaMetas() {
 
   const lunes = lunesDe(hoy);
   const grupos = new Map();
-  for (const m of D.metas) {
+  for (const m of metasManuales()) {
     const g = m.grupo || "Metas";
     if (!grupos.has(g)) grupos.set(g, []);
     grupos.get(g).push(m);
@@ -278,7 +283,7 @@ document.addEventListener("click", (ev) => {
   const calor = ev.target.closest("[data-meta-calor]");
   if (calor) {
     const [k, h] = calor.dataset.metaCalor.split("|");
-    captionCalor = `${fechaLarga(aFecha(k))}: ${h} de ${D.metas.length} metas`;
+    captionCalor = `${fechaLarga(aFecha(k))}: ${h} de ${metasManuales().length} metas`;
     const c = $("calorCaption");
     if (c) c.textContent = captionCalor;
   }
