@@ -1,7 +1,7 @@
 // Conclusiones: lo que la skill concluye de la ficha, preguntas para la familia y
 // para los médicos. Pestaña presente en todas las fichas.
 //
-// Pestaña "Conclusiones": la mantiene la skill (orden | titulo | nivel | texto).
+// Pestaña "Conclusiones": la mantiene la skill (orden | titulo | nivel | texto | seccion | estado).
 // Pestaña "Familia": preguntas que solo la familia puede responder. La skill
 // escribe la pregunta; la app escribe respuesta, respondido_por y fecha.
 //
@@ -106,6 +106,87 @@ function tarjetaFamilia(f) {
   </div>`;
 }
 
+// Resumen por secciones. Cada fila de Conclusiones dice a qué parte pertenece:
+//   resumen   → la tarjeta de arriba (una sola fila: titular + texto)
+//   tengo     → qué hay hoy
+//   hipotesis → qué puede estar pasando; estado = confirmado | probable | posible | por descartar
+//   plan      → cómo se va sanando; estado = logrado | encaminado | a medias | falta partir
+//   bien      → lo que está bien
+// Una fila sin seccion se muestra como tarjeta suelta, igual que antes.
+const SECCIONES_RESUMEN = [
+  ["tengo", "Qué hay hoy"],
+  ["hipotesis", "Qué puede estar pasando"],
+  ["plan", "Cómo se va sanando"],
+  ["bien", "Lo que está bien"],
+];
+const TONO_ESTADO = {
+  confirmado: "alerta", probable: "atencion", posible: "info", "por descartar": "info",
+  logrado: "ok", encaminado: "ok", "a medias": "atencion", "falta partir": "alerta",
+};
+const AVANCE_PLAN = { logrado: 1, encaminado: 1, "a medias": 0.5 };
+
+function tarjetaConclusion(c, conEstado) {
+  const cls = nivelDe(c.nivel);
+  const estado = norm(c.estado);
+  const tono = conEstado && TONO_ESTADO[estado] ? TONO_ESTADO[estado] : cls;
+  const chip = conEstado && estado ? pill(tono, estado[0].toUpperCase() + estado.slice(1)) : pill(cls, NIVEL_TXT[cls]);
+  return `<div class="card conclusion conclusion-${tono}">
+    <div class="conclusion-cab"><strong>${esc(c.titulo)}</strong>${chip}</div>
+    <p>${esc(c.texto)}</p>
+  </div>`;
+}
+
+function resumenFicha(conclusiones) {
+  if (!conclusiones.length) return `<div class="card"><p class="vacio">Todavía no hay conclusiones.</p></div>`;
+  const de = (s) => conclusiones.filter((c) => norm(c.seccion) === s);
+  const conocidas = ["resumen", ...SECCIONES_RESUMEN.map(([id]) => id)];
+  const sueltas = conclusiones.filter((c) => !conocidas.includes(norm(c.seccion)));
+
+  const [cabeza] = de("resumen");
+  const plan = de("plan");
+  const avance = plan.reduce((s, c) => s + (AVANCE_PLAN[norm(c.estado)] || 0), 0);
+  const enCamino = plan.filter((c) => AVANCE_PLAN[norm(c.estado)] === 1).length;
+  const act = aFecha(D.perfil.actualizado);
+
+  const heroe = cabeza
+    ? `<div class="resumen-heroe resumen-${nivelDe(cabeza.nivel)}">
+        <span class="resumen-ceja">En una mirada${act ? ` · ${act.getUTCDate()} ${MESES[act.getUTCMonth()]}` : ""}</span>
+        <h2>${esc(cabeza.titulo)}</h2>
+        <p>${esc(cabeza.texto)}</p>
+        ${
+          plan.length
+            ? `<div class="resumen-avance">
+                <div class="resumen-tramos" aria-hidden="true">${plan
+                  .map((c) => `<i class="tramo-${TONO_ESTADO[norm(c.estado)] || "info"}"></i>`)
+                  .join("")}</div>
+                <span><strong>${enCamino} de ${plan.length}</strong> frentes bien encaminados</span>
+              </div>`
+            : ""
+        }
+      </div>`
+    : "";
+
+  const bloques = SECCIONES_RESUMEN.map(([id, titulo]) => {
+    const filas = de(id);
+    if (!filas.length) return "";
+    const cuerpo =
+      id === "bien"
+        ? `<div class="card resumen-bien">${filas
+            .map((c) => `<div class="bien-fila"><i aria-hidden="true">✓</i><div><strong>${esc(c.titulo)}</strong><p>${esc(c.texto)}</p></div></div>`)
+            .join("")}</div>`
+        : filas.map((c) => tarjetaConclusion(c, id === "hipotesis" || id === "plan")).join("");
+    const nota =
+      id === "hipotesis"
+        ? `<p class="resumen-nota">Son hipótesis, no diagnósticos: cada una dice qué la confirmaría o la descartaría.</p>`
+        : id === "plan" && plan.length
+          ? `<p class="resumen-nota">${Math.round((avance / plan.length) * 100)} % del camino andando. Verde: va bien. Amarillo: a medias. Rojo: falta partir.</p>`
+          : "";
+    return `<h3 class="resumen-titulo">${titulo}<span>${filas.length}</span></h3>${nota}${cuerpo}`;
+  }).join("");
+
+  return heroe + bloques + sueltas.map((c) => tarjetaConclusion(c, false)).join("");
+}
+
 function vistaRevision() {
   const porMedico = new Map();
   for (const p of D.preguntas.filter((p) => norm(p.estado) !== "resuelta")) {
@@ -125,18 +206,7 @@ function vistaRevision() {
   if (!secciones.some(([id]) => id === subRevision)) subRevision = "conclusiones";
   const botones = subPestanas(secciones, subRevision, "data-sub-revision");
 
-  if (subRevision === "conclusiones") return `${botones}
-  ${
-    conclusiones
-      .map((c) => {
-        const cls = nivelDe(c.nivel);
-        return `<div class="card conclusion conclusion-${cls}">
-          <div class="conclusion-cab"><strong>${esc(c.titulo)}</strong>${pill(cls, NIVEL_TXT[cls])}</div>
-          <p>${esc(c.texto)}</p>
-        </div>`;
-      })
-      .join("") || `<div class="card"><p class="vacio">Todavía no hay conclusiones.</p></div>`
-  }`;
+  if (subRevision === "conclusiones") return botones + resumenFicha(conclusiones);
 
   if (subRevision === "familia") marcarVistas();
   if (subRevision === "familia") return `${botones}

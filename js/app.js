@@ -457,7 +457,7 @@ function edadExacta(nac) {
   return { a, m, d, faltan: Math.round((prox - h) / 86400000), cumple: a + (prox > h ? 1 : 0), prox };
 }
 
-// Posición de cada zona sobre la figura (viewBox 360×430). La figura se mira de
+// Posición de cada zona sobre la figura (viewBox 360×444). La figura se mira de
 // frente: el lado derecho del paciente queda a la izquierda de la pantalla.
 // `lado` decide a qué costado va la etiqueta y `ly` su altura.
 const ZONAS = {
@@ -475,6 +475,9 @@ const ZONAS = {
   huesos: { x: 156, y: 338, lado: "izq", ly: 338 },
 };
 
+// Media silueta; la otra mitad es la misma espejada.
+const FIGURA = "M179 60 L190 60 C190 82 192 88 206 92 C222 96 236 100 238 118 C240 140 244 160 246 182 C248 204 256 226 258 248 C259 256 262 264 258 270 C254 276 246 272 245 262 C242 240 234 216 231 194 C229 176 226 158 224 142 C222 160 218 184 216 204 C215 222 222 240 224 262 C226 300 222 330 218 352 C216 372 218 392 214 412 C213 420 216 426 210 428 L196 428 C192 426 194 418 194 410 C194 388 192 368 192 350 C192 320 186 290 182 268 L179 266 Z";
+
 function cuerpo() {
   const ubicadas = D.cuerpo.filter((z) => ZONAS[norm(z.zona)]);
   const sueltas = D.cuerpo.filter((z) => !ZONAS[norm(z.zona)]);
@@ -485,12 +488,15 @@ function cuerpo() {
       const cls = nivelDe(z.nivel);
       const izq = p.lado === "izq";
       const xl = izq ? 86 : 274; // donde termina la línea guía
-      const xt = izq ? 82 : 278; // donde parte el texto
+      const xt = izq ? 80 : 280; // donde parte el texto
       const activo = cls === "atencion" || cls === "alerta";
+      const r = activo ? 5.5 : 4;
       return `<g class="zona zona-${cls}" data-zona="${esc(norm(z.zona))}" tabindex="0" role="button" aria-label="${esc(z.titulo)}: ${esc(NIVEL_TXT[cls])}">
         <path d="M${p.x} ${p.y} L${izq ? xl + 14 : xl - 14} ${p.ly} H${xl}" class="zona-guia"/>
-        <circle cx="${p.x}" cy="${p.y}" r="${activo ? 7 : 5}" class="zona-pulso" style="animation-delay:${(i * 0.45).toFixed(2)}s"/>
-        <circle cx="${p.x}" cy="${p.y}" r="${activo ? 7 : 5}" class="zona-punto"/>
+        <path d="M${xl} ${p.ly - 4} v8" class="zona-tope"/>
+        <circle cx="${p.x}" cy="${p.y}" r="${r + 2}" class="zona-pulso" style="animation-delay:${(i * 0.45).toFixed(2)}s"/>
+        <circle cx="${p.x}" cy="${p.y}" r="${r + 4}" class="zona-aro"/>
+        <circle cx="${p.x}" cy="${p.y}" r="${r}" class="zona-punto"/>
         <text x="${xt}" y="${p.ly - 1}" text-anchor="${izq ? "end" : "start"}" class="zona-nombre">${esc(z.titulo)}</text>
         <text x="${xt}" y="${p.ly + 11}" text-anchor="${izq ? "end" : "start"}" class="zona-estado">${esc(NIVEL_TXT[cls])}</text>
         <rect x="${izq ? 0 : xl - 16}" y="${p.ly - 14}" width="${izq ? xl + 16 : 360 - xl + 16}" height="30" fill="transparent"/>
@@ -500,35 +506,59 @@ function cuerpo() {
     .join("");
 
   const cuenta = (c) => D.cuerpo.filter((z) => nivelDe(z.nivel) === c).length;
-  const seguimiento = cuenta("atencion") + cuenta("alerta");
+  const resumen = ["alerta", "atencion", "ok", "info"]
+    .map((c) => [c, cuenta(c)])
+    .filter(([, n]) => n)
+    .map(([c, n]) => `<div class="escaner-dato zona-${c}"><strong>${n}</strong><span><i></i>${esc(NIVEL_TXT[c])}</span></div>`)
+    .join("");
+  const act = aFecha(D.perfil.actualizado);
+  const esquina = (x, y, dx, dy) => `<path d="M${x} ${y + dy} V${y} H${x + dx}"/>`;
 
   return `<div class="escaner">
     <div class="escaner-cab">
-      <div>
-        <strong><i class="vivo" aria-hidden="true"></i>Escáner en vivo</strong>
-      </div>
-      ${
-        seguimiento
-          ? `<span class="escaner-aviso"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3 2 20h20z" fill="#ffc533"/><path d="M12 10v4.5M12 17.2v.3" stroke="#3a2a00" stroke-width="2.2" stroke-linecap="round"/></svg>${seguimiento} en seguimiento</span>`
-          : `<span class="escaner-aviso">✓ Todo en orden</span>`
-      }
+      <strong><i class="vivo" aria-hidden="true"></i>Escáner en vivo</strong>
+      ${act ? `<span>Actualizado ${act.getUTCDate()} ${MESES[act.getUTCMonth()]}</span>` : ""}
     </div>
-    <svg viewBox="0 0 360 430" class="escaner-svg" role="group" aria-label="Estado por zona del cuerpo">
+    <svg viewBox="0 0 360 444" class="escaner-svg" role="group" aria-label="Estado por zona del cuerpo">
       <defs>
         <linearGradient id="gBarrido" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#fff" stop-opacity="0"/>
-          <stop offset="1" stop-color="#fff" stop-opacity="0.32"/>
+          <stop offset="0" stop-color="#7fdcff" stop-opacity="0"/>
+          <stop offset="1" stop-color="#7fdcff" stop-opacity="0.3"/>
         </linearGradient>
+        <linearGradient id="gFigura" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f2fbff"/>
+          <stop offset="0.55" stop-color="#bfe8ff"/>
+          <stop offset="1" stop-color="#6cc4f5"/>
+        </linearGradient>
+        <radialGradient id="gHalo" cx="0.5" cy="0.42" r="0.5">
+          <stop offset="0" stop-color="#3fb4ff" stop-opacity="0.34"/>
+          <stop offset="1" stop-color="#3fb4ff" stop-opacity="0"/>
+        </radialGradient>
+        <pattern id="pTrama" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#06305c" opacity="0.1"/></pattern>
+        <clipPath id="cFigura">
+          <ellipse cx="180" cy="44" rx="21" ry="25"/>
+          <path d="${FIGURA}"/>
+          <path d="${FIGURA}" transform="translate(360 0) scale(-1 1)"/>
+        </clipPath>
       </defs>
+      <ellipse cx="180" cy="200" rx="150" ry="215" fill="url(#gHalo)"/>
       <g class="rejilla">
-        ${[70, 140, 210, 280, 350].map((y) => `<line x1="96" x2="264" y1="${y}" y2="${y}"/>`).join("")}
+        ${[70, 140, 210, 280, 350].map((y) => `<line x1="100" x2="260" y1="${y}" y2="${y}"/>`).join("")}
+        <line x1="180" x2="180" y1="8" y2="424"/>
       </g>
+      <g class="marco">
+        ${esquina(98, 6, 12, 12)}${esquina(262, 6, -12, 12)}${esquina(98, 424, 12, -12)}${esquina(262, 424, -12, -12)}
+      </g>
+      <g class="base"><ellipse cx="180" cy="430" rx="64" ry="8"/><ellipse cx="180" cy="430" rx="40" ry="5"/></g>
       <g class="figura">
         <ellipse cx="180" cy="44" rx="21" ry="25"/>
-        <path d="M179 60 L190 60 C190 82 192 88 206 92 C222 96 236 100 238 118 C240 140 244 160 246 182 C248 204 256 226 258 248 C259 256 262 264 258 270 C254 276 246 272 245 262 C242 240 234 216 231 194 C229 176 226 158 224 142 C222 160 218 184 216 204 C215 222 222 240 224 262 C226 300 222 330 218 352 C216 372 218 392 214 412 C213 420 216 426 210 428 L196 428 C192 426 194 418 194 410 C194 388 192 368 192 350 C192 320 186 290 182 268 L179 266 Z"/>
-        <path d="M179 60 L190 60 C190 82 192 88 206 92 C222 96 236 100 238 118 C240 140 244 160 246 182 C248 204 256 226 258 248 C259 256 262 264 258 270 C254 276 246 272 245 262 C242 240 234 216 231 194 C229 176 226 158 224 142 C222 160 218 184 216 204 C215 222 222 240 224 262 C226 300 222 330 218 352 C216 372 218 392 214 412 C213 420 216 426 210 428 L196 428 C192 426 194 418 194 410 C194 388 192 368 192 350 C192 320 186 290 182 268 L179 266 Z" transform="translate(360 0) scale(-1 1)"/>
+        <path d="${FIGURA}"/>
+        <path d="${FIGURA}" transform="translate(360 0) scale(-1 1)"/>
       </g>
-      <rect x="92" y="0" width="176" height="46" fill="url(#gBarrido)" class="barrido"/>
+      <g clip-path="url(#cFigura)">
+        <rect x="100" y="0" width="160" height="432" fill="url(#pTrama)"/>
+        <g class="barrido"><rect x="100" y="0" width="160" height="60" fill="url(#gBarrido)"/><rect x="100" y="59" width="160" height="1.6" fill="#eaffff"/></g>
+      </g>
       ${marcas}
     </svg>
     ${
@@ -541,6 +571,8 @@ function cuerpo() {
             .join("")}</div>`
         : ""
     }
+    <div class="escaner-resumen">${resumen}</div>
+    <p class="escaner-pie">Toca una zona para ver el detalle</p>
   </div>`;
 }
 
