@@ -48,5 +48,5 @@ window.APP_CONFIG = {
   SCOPES: "https://www.googleapis.com/auth/spreadsheets",
   TABS: ["Perfil", "Resultados", "Indicadores", "Examenes", "Diagnosticos", "Medicamentos", "Agenda", "Preguntas", "Bitacora", "Cuerpo", "Habitos", "Metas", "Registro", "Conclusiones", "Familia", "Pauta", "Alimentos", "Comidas"],
   // Se leen aparte y pueden faltar en la planilla sin romper la carga.
-  TABS_OPCIONALES: ["Despensa"],
+  TABS_OPCIONALES: ["Despensa", "Rutina", "Entrenos", "Medidas", "Equipo"],
 };

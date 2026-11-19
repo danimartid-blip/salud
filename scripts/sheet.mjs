@@ -58,6 +58,12 @@ export const ESQUEMA = {
   // nota como "Vence DD-MM-AAAA". La app cambia cantidad y actualizado buscando la fila
   // por id, y deja la fila en blanco cuando se agota: nunca reescribirla entera.
   Despensa: ["id", "alimento", "cantidad", "unidad", "lugar", "grupo", "actualizado", "nota"],
+  // Entreno (sub-pestaña de Metas). Rutina la mantiene la skill; Entrenos y Medidas
+  // las escriben la app (solo agrega filas) y la skill. dia = A, B…; reps = "12,10,10".
+  Rutina: ["dia", "orden", "ejercicio", "series", "reps", "peso_kg", "descanso", "como", "cuidado", "activo"],
+  Entrenos: ["id", "fecha", "rutina", "ejercicio", "series", "reps", "peso_kg", "esfuerzo", "nota"],
+  Medidas: ["fecha", "peso_kg", "grasa_pct", "musculo_pct", "agua_pct", "visceral", "cintura_cm", "fuente", "nota"],
+  Equipo: ["item", "cantidad", "peso_kg", "nota"],
 };
 
 const sheets = google.sheets({ version: "v4", auth: getAuth() });

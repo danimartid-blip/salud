@@ -632,3 +632,19 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .diario-resumen b { color: var(--tinta); }
 /* Con siete pestañas, la barra se aprieta un poco en celulares angostos. */
 @media (max-width: 400px) { .tabbar a { font-size: 10px; letter-spacing: -0.01em; } }
+
+/* Entreno (sub-pestaña de Metas) */
+.ent-antes { display: block; font-size: 12px; color: var(--tinta-3); margin-top: 2px; }
+.ent-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.ent-hist li { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--borde); padding-top: 8px; }
+.ent-hist li:first-child { border-top: 0; padding-top: 0; }
+.ent-hist li > span:last-child { color: var(--tinta-2); text-align: right; }
+.ent-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.ent-dato { display: grid; gap: 2px; }
+.ent-dato small { font-size: 12px; color: var(--tinta-3); }
+.ent-dato b { font-size: 18px; }
+.ent-dato span { font-size: 12px; font-weight: 700; color: var(--tinta-3); }
+.ent-dato span.ok { color: var(--ok); }
+.ent-dato span.mal { color: var(--atencion); }
+.ent-objetivo { font-size: 14px; color: var(--tinta-2); margin: -4px 0 12px; }
+.ent-esfuerzo .filtro { min-width: 42px; justify-content: center; }

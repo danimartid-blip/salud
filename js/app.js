@@ -146,6 +146,11 @@ function armar(crudo) {
     // Despensa es opcional: sin la pestaña (fichas de otros) la sub-pestaña no aparece.
     conDespensa: !!crudo.Despensa?.length,
     despensa: aObjetos(crudo.Despensa).filter((p) => p.id !== "" && p.alimento),
+    // Entreno (opcional): sin "Rutina" no aparece la sub-pestaña.
+    rutina: aObjetos(crudo.Rutina).filter((r) => r.ejercicio && norm(r.activo) !== "no"),
+    entrenos: aObjetos(crudo.Entrenos).filter((e) => e.ejercicio).map((c) => ({ ...c, fecha: c.fecha && typeof c.fecha === "number" ? ymd(aFecha(c.fecha)) : String(c.fecha) })),
+    medidas: aObjetos(crudo.Medidas).filter((m) => m.fecha !== "").map((c) => ({ ...c, fecha: c.fecha && typeof c.fecha === "number" ? ymd(aFecha(c.fecha)) : String(c.fecha) })),
+    equipo: aObjetos(crudo.Equipo).filter((q) => q.item),
     conclusiones: aObjetos(crudo.Conclusiones).filter((c) => c.titulo),
     familia: conFecha(crudo.Familia).filter((f) => f.id !== "" && f.pregunta),
   };
@@ -1008,20 +1013,20 @@ function tipMasCercano(ev) {
 // ---------- Navegación y arranque ----------
 
 // Todas las fichas tienen Conclusiones; Metas solo aparece si la ficha tiene metas
-// manuales activas, y Nutrición si tiene diario, despensa o pauta (hoy, solo la de Daniel).
+// manuales activas o rutina de entreno, y Nutrición si tiene diario, despensa o pauta (hoy, solo la de Daniel).
 const VISTAS = {
   inicio: vistaInicio,
   indicadores: vistaIndicadores,
   examenes: vistaExamenes,
   conclusiones: vistaRevision,
   nutricion: vistaNutricion,
-  metas: vistaMetas,
+  metas: vistaMetasYEntreno,
   plan: vistaPlan,
 };
 
 function pintar() {
   if (!D) return;
-  const conMetas = metasManuales().length > 0;
+  const conMetas = metasManuales().length > 0 || D.rutina.length > 0;
   const conNutri = hayNutricion();
   let tab = VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : "inicio";
   if (tab === "metas" && !conMetas) tab = "conclusiones"; // enlaces viejos de las fichas sin metas
