@@ -1012,8 +1012,9 @@ function tipMasCercano(ev) {
 
 // ---------- Navegación y arranque ----------
 
-// Todas las fichas tienen Conclusiones; Metas solo aparece si la ficha tiene metas
-// manuales activas o rutina de entreno, y Nutrición si tiene diario, despensa o pauta (hoy, solo la de Daniel).
+// Todas las fichas tienen Conclusiones. Nutrición aparece si la ficha tiene diario,
+// despensa o pauta (hoy, solo la de Daniel) y entonces absorbe Metas y Entreno; sin
+// Nutrición, Metas aparece si hay metas manuales activas o rutina de entreno.
 const VISTAS = {
   inicio: vistaInicio,
   indicadores: vistaIndicadores,
@@ -1026,9 +1027,11 @@ const VISTAS = {
 
 function pintar() {
   if (!D) return;
-  const conMetas = metasManuales().length > 0 || D.rutina.length > 0;
   const conNutri = hayNutricion();
+  // Con Nutrición, las metas y el entreno viven ahí (Nutrición > Hoy y > Entreno).
+  const conMetas = !conNutri && (metasManuales().length > 0 || D.rutina.length > 0);
   let tab = VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : "inicio";
+  if (tab === "metas" && conNutri) tab = "nutricion"; // la app instalada puede abrir en #metas
   if (tab === "metas" && !conMetas) tab = "conclusiones"; // enlaces viejos de las fichas sin metas
   if (tab === "nutricion" && !conNutri) tab = "inicio";
   $("tabMetas").hidden = !conMetas;
