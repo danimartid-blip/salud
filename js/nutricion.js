@@ -85,7 +85,7 @@ function vistaNutricion() {
   if (!secciones.length) return `<div class="card"><p class="vacio">Todavía no hay datos de alimentación.</p></div>`;
   if (!secciones.some(([id]) => id === subNutri)) subNutri = secciones[0][0];
   const vista = { hoy: vistaHoy, diario: vistaDiario, entreno: vistaEntreno, despensa: vistaDespensa, pauta: vistaPauta }[subNutri];
-  return subPestanas(secciones, subNutri, "data-sub-nutri", secciones.length > 4) + vista();
+  return subPestanas(secciones, subNutri, "data-sub-nutri") + vista();
 }
 
 document.addEventListener("click", (ev) => {

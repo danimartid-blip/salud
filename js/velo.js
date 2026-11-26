@@ -18,14 +18,18 @@ let agujaVista = null; // kcal ya animadas: la aguja se anima solo si cambian
 function veloDias() {
   const hoy = hoyUTC();
   const porDia = new Map();
-  for (const c of D.comidas) porDia.set(c.fecha, (porDia.get(c.fecha) || 0) + (num(c.kcal) || 0));
+  const protDia = new Map();
+  for (const c of D.comidas) {
+    porDia.set(c.fecha, (porDia.get(c.fecha) || 0) + (num(c.kcal) || 0));
+    protDia.set(c.fecha, (protDia.get(c.fecha) || 0) + (num(c.proteina_g) || 0));
+  }
   const fechas = [...porDia.keys()].filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
   const primero = fechas.length ? aFecha(fechas[0]) : hoy;
   const n = Math.max(7, Math.min(DIAS_MAX, Math.round((+hoy - +primero) / UN_DIA) + 1));
   // Más 4 días futuros, solo de adorno: la perilla no pasa de hoy.
   return Array.from({ length: n + 4 }, (_, i) => {
     const d = masDias(hoy, i - n + 1), k = ymd(d);
-    return { d, k, kcal: Math.round(porDia.get(k) || 0), con: porDia.has(k), fut: i >= n };
+    return { d, k, kcal: Math.round(porDia.get(k) || 0), prot: Math.round(protDia.get(k) || 0), con: porDia.has(k), fut: i >= n };
   });
 }
 
@@ -142,113 +146,228 @@ function veloInicio() {
     </div>
     <button type="button" class="velo-toque" data-velo-dia aria-label="Ver lo que comí ese día">${velocimetro(x.kcal, metaK)}</button>
     <div class="velo-pie" id="veloPie">${textoResto(x, metaK)}</div>
+    ${tanque(x.prot)}
   </section>`;
 }
 
 // ---------- La perilla ----------
 
-/** Dibuja el tambor girado en la posición f (puede ser fraccionaria). */
-function girarPerilla(per, f) {
-  const ancho = per.clientWidth / 2;
-  for (const el of per.querySelectorAll(".pq-dia")) {
-    const a = (Number(el.dataset.i) - f) * ANG_DIA;
-    if (Math.abs(a) > 84) {
-      el.style.visibility = "hidden";
-      continue;
+// ---------- Tambor: la ruedita que gira con el dedo ----------
+// Lo usan la perilla de días del Inicio y las sub-pestañas de toda la app
+// (Nutrición, Plan, Conclusiones…). Cada elemento con data-i es una franja del
+// cilindro; se dibujan en perspectiva según su distancia al centro.
+
+/**
+ * @param el      contenedor (role=slider o tablist)
+ * @param o.n     cuántas franjas
+ * @param o.max   última franja elegible (las siguientes son de adorno)
+ * @param o.ang   grados del cilindro por franja
+ * @param o.px    pixeles de arrastre por franja
+ * @param o.impulso cuántas franjas de más puede girar un lanzamiento rápido
+ * @param o.alMover(f)   en cada cuadro, con la posición fraccionaria
+ * @param o.alCambiar(i) al pasar a otra franja
+ * @param o.alSoltar(i)  cuando se detiene en una franja
+ */
+function tambor(el, o) {
+  if (el._montada) return;
+  el._montada = true;
+  const items = [...el.querySelectorAll("[data-i]")];
+  const max = o.max ?? o.n - 1;
+  let pos = o.inicio, entero = o.inicio, anim = null, toque = null, ultimoSuelto = 0;
+
+  const dibujar = () => {
+    const ancho = el.clientWidth / 2;
+    for (const it of items) {
+      const a = (Number(it.dataset.i) - pos) * o.ang;
+      if (Math.abs(a) > 84) {
+        it.style.visibility = "hidden";
+        continue;
+      }
+      const rad = (a * Math.PI) / 180;
+      it.style.visibility = "";
+      it.style.transform = `translateX(${(Math.sin(rad) * ancho * 0.98).toFixed(1)}px) scaleX(${Math.cos(rad).toFixed(3)})`;
+      it.style.opacity = (0.22 + 0.78 * Math.cos(rad)).toFixed(2);
+      it.classList.toggle("centro", Math.abs(a) < o.ang / 2);
     }
-    const rad = (a * Math.PI) / 180;
-    el.style.visibility = "";
-    el.style.transform = `translateX(${(Math.sin(rad) * ancho * 0.98).toFixed(1)}px) scaleX(${Math.cos(rad).toFixed(3)})`;
-    el.style.opacity = (0.25 + 0.75 * Math.cos(rad)).toFixed(2);
-    el.classList.toggle("centro", Math.abs(a) < ANG_DIA / 2);
-  }
-  // Las estrías del cilindro giran junto con los días.
-  per.style.setProperty("--estria", `${(-f * PX_DIA) % 12}px`);
-}
-
-/** Calorías interpoladas en la posición f, para que la aguja "pase" por cada día. */
-function kcalEn(dias, f) {
-  const i = Math.floor(f), t = f - i;
-  const a = dias[Math.max(0, Math.min(dias.length - 1, i))].kcal;
-  const b = dias[Math.max(0, Math.min(dias.length - 1, i + 1))].kcal;
-  return a + (b - a) * t;
-}
-
-let perillaEstado = null;
-
-function montarPerilla() {
-  const per = $("perilla");
-  if (!per || per._montada) return;
-  per._montada = true;
-  const dias = veloDias();
-  const svg = per.parentElement.querySelector(".velo");
-  const metaK = Number(svg.dataset.meta);
-  let pos = veloIdx, ultimoEntero = veloIdx, anim = null;
+    el.style.setProperty("--estria", `${(-pos * o.px) % 12}px`); // las estrías giran con el cilindro
+  };
 
   const mostrar = (f) => {
-    pos = Math.max(0, Math.min(ultimoDia(dias) + 0.35, f)); // un poco de rebote pasado hoy
-    girarPerilla(per, pos);
-    moverVelo(svg, kcalEn(dias, Math.min(pos, ultimoDia(dias))));
-    const i = Math.round(pos);
-    if (i !== ultimoEntero) {
-      ultimoEntero = i;
+    pos = Math.max(-0.35, Math.min(max + 0.35, f)); // un poco de rebote en los extremos
+    dibujar();
+    o.alMover?.(pos);
+    const i = Math.max(0, Math.min(max, Math.round(pos)));
+    if (i !== entero) {
+      entero = i;
       try { navigator.vibrate?.(4); } catch {}
-      $("veloDia").textContent = nombreDia(dias[i]);
-      const p = promedio7(dias, i);
-      $("veloProm").innerHTML = p != null ? `prom. 7 días <b>${p.toLocaleString("es-CL")}</b>` : "";
-      per.setAttribute("aria-valuenow", i);
-      per.setAttribute("aria-valuetext", nombreDia(dias[i]));
+      o.alCambiar?.(i);
     }
   };
 
-  /** Lleva la perilla a un día con un frenado suave y deja el pie al día. */
   const irA = (destino) => {
-    destino = Math.max(0, Math.min(ultimoDia(dias), Math.round(destino)));
+    destino = Math.max(0, Math.min(max, Math.round(destino)));
     cancelAnimationFrame(anim);
     const desde = pos, t0 = performance.now(), dur = Math.min(700, 260 + Math.abs(destino - desde) * 40);
     const paso = (t) => {
       const u = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - u, 3);
       mostrar(desde + (destino - desde) * e);
       if (u < 1) anim = requestAnimationFrame(paso);
-      else {
-        veloIdx = destino;
-        $("veloPie").innerHTML = textoResto(dias[destino], metaK);
-        svg.setAttribute("aria-label", `${dias[destino].kcal} de ${metaK} kilocalorías`);
-      }
+      else o.alSoltar?.(destino);
     };
     anim = requestAnimationFrame(paso);
   };
 
-  per.addEventListener("pointerdown", (ev) => {
+  el.addEventListener("pointerdown", (ev) => {
     cancelAnimationFrame(anim);
-    try { per.setPointerCapture(ev.pointerId); } catch {}
-    per.classList.add("girando");
-    perillaEstado = { x: ev.clientX, pos, t: performance.now(), v: 0, lx: ev.clientX };
+    try { el.setPointerCapture(ev.pointerId); } catch {}
+    el.classList.add("girando");
+    toque = { x: ev.clientX, pos, t: performance.now(), v: 0, lx: ev.clientX, movio: false };
   });
-  per.addEventListener("pointermove", (ev) => {
-    if (!perillaEstado) return;
-    const now = performance.now(), dt = Math.max(1, now - perillaEstado.t);
-    perillaEstado.v = 0.8 * ((ev.clientX - perillaEstado.lx) / dt) + 0.2 * perillaEstado.v; // px/ms
-    perillaEstado.t = now;
-    perillaEstado.lx = ev.clientX;
-    mostrar(perillaEstado.pos - (ev.clientX - perillaEstado.x) / PX_DIA);
+  el.addEventListener("pointermove", (ev) => {
+    if (!toque) return;
+    const now = performance.now(), dt = Math.max(1, now - toque.t);
+    toque.v = 0.8 * ((ev.clientX - toque.lx) / dt) + 0.2 * toque.v; // px/ms
+    toque.t = now;
+    toque.lx = ev.clientX;
+    if (Math.abs(ev.clientX - toque.x) > 6) toque.movio = true;
+    if (toque.movio) mostrar(toque.pos - (ev.clientX - toque.x) / o.px);
   });
-  const soltar = () => {
-    if (!perillaEstado) return;
-    per.classList.remove("girando");
-    const v = perillaEstado.v;
-    perillaEstado = null;
-    irA(pos - Math.max(-7, Math.min(7, (v * 180) / PX_DIA))); // un impulso rápido sigue girando un poco (máx. 7 días)
-  };
-  per.addEventListener("pointerup", soltar);
-  per.addEventListener("pointercancel", soltar);
-  per.addEventListener("keydown", (ev) => {
-    const d = { ArrowLeft: -1, ArrowRight: 1, Home: -dias.length, End: dias.length }[ev.key];
+  el.addEventListener("pointerup", (ev) => {
+    if (!toque) return;
+    el.classList.remove("girando");
+    const { v, movio } = toque;
+    toque = null;
+    ultimoSuelto = performance.now();
+    const tope = o.impulso ?? 7; // un impulso rápido gira un poco más
+    if (movio) return irA(pos - Math.max(-tope, Math.min(tope, (v * 180) / o.px)));
+    // Un toque sobre una franja la trae al centro.
+    const it = document.elementFromPoint(ev.clientX, ev.clientY)?.closest?.("[data-i]");
+    if (it && el.contains(it)) irA(Number(it.dataset.i));
+  });
+  el.addEventListener("pointercancel", () => {
+    toque = null;
+    el.classList.remove("girando");
+    irA(pos);
+  });
+  // Los clics de verdad dentro del tambor no pasan: elegir es soltar el tambor.
+  el.addEventListener("click", (ev) => {
+    if (!ev.isTrusted) return;
+    ev.stopPropagation();
+    ev.preventDefault();
+    if (performance.now() - ultimoSuelto > 400) {
+      const it = ev.target.closest("[data-i]"); // teclado (Enter / espacio)
+      if (it) irA(Number(it.dataset.i));
+    }
+  });
+  el.addEventListener("keydown", (ev) => {
+    const d = { ArrowLeft: -1, ArrowRight: 1, Home: -o.n, End: o.n }[ev.key];
     if (d == null) return;
     ev.preventDefault();
     irA(Math.round(pos) + d);
   });
-  girarPerilla(per, pos);
+  dibujar();
+}
+
+/** Valor interpolado en la posición f, para que las agujas "pasen" por cada día. */
+function valorEn(dias, f, campo) {
+  f = Math.max(0, f);
+  const i = Math.floor(f), t = f - i;
+  const a = dias[Math.max(0, Math.min(dias.length - 1, i))][campo];
+  const b = dias[Math.max(0, Math.min(dias.length - 1, i + 1))][campo];
+  return a + (b - a) * t;
+}
+
+function montarPerilla() {
+  const per = $("perilla");
+  if (!per) return;
+  const dias = veloDias();
+  const svg = per.parentElement.querySelector(".velo");
+  const tanque = per.parentElement.querySelector(".tanque");
+  const metaK = Number(svg.dataset.meta);
+  const ult = ultimoDia(dias);
+  tambor(per, {
+    n: dias.length,
+    max: ult,
+    inicio: veloIdx,
+    ang: ANG_DIA,
+    px: PX_DIA,
+    alMover: (f) => {
+      moverVelo(svg, valorEn(dias, Math.min(f, ult), "kcal"));
+      if (tanque) moverTanque(tanque, valorEn(dias, Math.min(f, ult), "prot"));
+    },
+    alCambiar: (i) => {
+      $("veloDia").textContent = nombreDia(dias[i]);
+      const p = promedio7(dias, i);
+      $("veloProm").innerHTML = p != null ? `prom. 7 días <b>${p.toLocaleString("es-CL")}</b>` : "";
+      per.setAttribute("aria-valuenow", i);
+      per.setAttribute("aria-valuetext", nombreDia(dias[i]));
+    },
+    alSoltar: (i) => {
+      veloIdx = i;
+      $("veloPie").innerHTML = textoResto(dias[i], metaK);
+      svg.setAttribute("aria-label", `${dias[i].kcal} de ${metaK} kilocalorías`);
+    },
+  });
+}
+
+/** Sub-pestañas como tambor claro: al soltarlo en una, se elige esa (dispara el
+ * mismo clic que antes daban los botones, así cada vista sigue igual). */
+function montarRuedas() {
+  for (const r of document.querySelectorAll(".rueda")) {
+    if (r._montada) continue;
+    const items = r.querySelectorAll("[data-i]");
+    const inicio = Number(r.dataset.actual);
+    const ancho = items[0]?.offsetWidth || 120;
+    tambor(r, {
+      n: items.length,
+      inicio,
+      ang: Math.min(40, (Math.asin(Math.min(0.9, (ancho * 1.12) / (r.clientWidth / 2))) * 180) / Math.PI),
+      px: ancho,
+      impulso: 1,
+      alSoltar: (i) => {
+        if (i !== inicio) items[i].click();
+      },
+    });
+  }
+}
+
+// ---------- Tanque de proteína (como el de la bencina) ----------
+
+/** Medidor de proteína del día: de E a F, con la meta de la nutricionista como
+ * "lleno". Sin meta en el Perfil, la escala llega a 120 g y lo avisa. */
+function tanque(prot) {
+  const metaP = num(D.perfil.meta_proteina_g);
+  const lleno = metaP || 120;
+  const ang = (g) => 205 + (Math.min(Math.max(g, 0), lleno) / lleno) * 130; // de 205° (E) a 335° (F)
+  const pt = (a, r) => [70 + r * Math.cos((a * Math.PI) / 180), 66 + r * Math.sin((a * Math.PI) / 180)];
+  const marcas = [0, 0.25, 0.5, 0.75, 1]
+    .map((f) => {
+      const a = 205 + f * 130, [x0, y0] = pt(a, 44), [x1, y1] = pt(a, f % 0.5 === 0 ? 34 : 38);
+      return `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" class="tq-m${f === 0 ? " tq-e" : ""}"/>`;
+    })
+    .join("");
+  const [ex, ey] = pt(205, 26), [fx, fy] = pt(335, 26), [a0x, a0y] = pt(205, 48), [a1x, a1y] = pt(335, 48);
+  return `<div class="tanque" data-lleno="${lleno}">
+    <svg viewBox="0 0 140 84" role="img" aria-label="Proteína del día">
+      <path d="M${a0x.toFixed(1)} ${a0y.toFixed(1)}A48 48 0 0 1 ${a1x.toFixed(1)} ${a1y.toFixed(1)}" class="tq-arco"/>
+      <path d="M${a0x.toFixed(1)} ${a0y.toFixed(1)}A48 48 0 0 1 ${a1x.toFixed(1)} ${a1y.toFixed(1)}" class="tq-nivel" pathLength="100" style="stroke-dasharray:${((Math.min(prot, lleno) / lleno) * 100).toFixed(1)} 100"/>
+      ${marcas}
+      <text x="${ex.toFixed(1)}" y="${ey.toFixed(1)}" class="tq-letra tq-e">E</text>
+      <text x="${fx.toFixed(1)}" y="${fy.toFixed(1)}" class="tq-letra">F</text>
+      <g transform="translate(80 54)" class="tq-bomba"><path d="M1 1h7v12H1zM2.5 3.5h4v3h-4zM8 5l3 2v5a1.2 1.2 0 0 0 2.4 0V5.5L11 3"/></g>
+      <g class="tq-aguja" style="--g:${(ang(prot) - 270).toFixed(1)}deg"><path d="M70 22 L72.6 66 L67.4 66 Z"/></g>
+      <circle cx="70" cy="66" r="5.5" class="tq-eje"/>
+    </svg>
+    <div class="tq-txt"><b><span class="tq-num">${Math.round(prot)}</span><small> g</small></b><span>proteína${metaP ? ` de ${metaP} g` : ""}</span>${metaP ? "" : `<em>falta tu meta</em>`}</div>
+  </div>`;
+}
+
+function moverTanque(el, prot) {
+  const lleno = Number(el.dataset.lleno);
+  el.querySelector(".tq-nivel").style.strokeDasharray = `${((Math.min(prot, lleno) / lleno) * 100).toFixed(1)} 100`;
+  el.querySelector(".tq-aguja").style.setProperty("--g", `${(205 + (Math.min(Math.max(prot, 0), lleno) / lleno) * 130 - 270).toFixed(1)}deg`);
+  el.querySelector(".tq-num").textContent = Math.round(prot);
+  el.classList.toggle("lleno", prot >= lleno);
 }
 
 document.addEventListener("click", (ev) => {
@@ -258,25 +377,3 @@ document.addEventListener("click", (ev) => {
   subNutri = "diario";
   location.hash = "nutricion";
 });
-
-// ---------- Pendientes del Inicio ----------
-
-function pendientesInicio() {
-  const lista = pendientes().slice(0, 5);
-  if (!lista.length) return `<div class="pend-card"><p class="pend-vacio">Nada pendiente. Bien ahí.</p></div>`;
-  const resto = pendientes().length - lista.length;
-  return `<div class="pend-card" role="list">${lista
-    .map((a) => {
-      const i = D.agenda.indexOf(a);
-      const n = a._fecha ? diasHasta(a._fecha) : null;
-      const cls = n == null ? "sin" : n < 0 ? "atrasado" : n <= 7 ? "pronto" : "";
-      const cifra = n == null ? "—" : n < 0 ? "!" : n === 0 ? "Hoy" : n;
-      const unidad = n == null ? "sin fecha" : n < 0 ? "atrasado" : n === 0 ? "" : n === 1 ? "día" : "días";
-      return `<button type="button" class="pend ${cls}" data-pendiente="${i}" role="listitem">
-        <span class="pend-cuenta"><b>${cifra}</b><small>${unidad}</small></span>
-        <span class="pend-txt"><strong>${esc(a.titulo)}</strong><small>${esc(a.tipo || "Pendiente")}${a._fecha ? ` · ${a._fecha.getUTCDate()} ${MESES[a._fecha.getUTCMonth()]}` : ""}</small></span>
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-      </button>`;
-    })
-    .join("")}${resto > 0 ? `<a class="pend-mas" href="#plan">+${resto} más en el plan</a>` : ""}</div>`;
-}

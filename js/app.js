@@ -621,7 +621,15 @@ const ICONOS_HABITO = {
 const iconoHabito = (k) =>
   `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONOS_HABITO[norm(k)] || `<circle cx="12" cy="12" r="8"/>`}</svg>`;
 
-/** Pendientes como línea de tiempo horizontal: ocupa una franja y se desliza. */
+/** El escáner y el velocímetro van en un solo panel azul, sin corte entre ellos.
+ * Los pendientes ya no van en el Inicio: viven en Plan. */
+function panelVivo() {
+  const escaner = D.cuerpo.length ? cuerpo() : "";
+  const velo = hayNutricion() ? veloInicio() : "";
+  if (!escaner || !velo) return escaner || velo;
+  return `<div class="panel-vivo">${escaner}<div class="panel-corte" aria-hidden="true"></div>${velo}</div>`;
+}
+
 function vistaInicio() {
   const p = D.perfil;
   const fuera = D.indicadores.filter(esAtencion).length;
@@ -660,12 +668,7 @@ function vistaInicio() {
     }
   </div>
 
-  ${D.cuerpo.length ? cuerpo() : ""}
-
-  ${hayNutricion() ? veloInicio() : ""}
-
-  <h2>Lo que viene <a class="h2-link" href="#plan">Ver plan</a></h2>
-  ${pendientesInicio()}`;
+  ${panelVivo()}`;
 }
 
 function abrirPendiente(i) {
@@ -868,7 +871,7 @@ function vistaPlan() {
     ["bitacora", "Bitácora", D.bitacora.length],
   ];
   if (!secciones.some(([id]) => id === subPlan)) subPlan = "pendientes";
-  const botones = subPestanas(secciones, subPlan, "data-sub-plan", true);
+  const botones = subPestanas(secciones, subPlan, "data-sub-plan");
 
   const contenido = {
     pendientes: () => `
@@ -890,29 +893,20 @@ function vistaPlan() {
 
 let subPlan = "pendientes";
 
-/** Barra de sub-pestañas redondeada y fija arriba. Con muchas secciones
- * (`desliza`), los botones no se reparten el ancho: la barra se desliza. */
-function subPestanas(secciones, actual, atributo, desliza = false) {
-  const barra = `<div class="filtros revision-tabs${desliza ? " desliza" : ""}" role="tablist">${secciones
-    .map(
-      ([id, txt, n]) =>
-        `<button type="button" role="tab" aria-selected="${actual === id}" class="filtro${actual === id ? " activo" : ""}" ${atributo}="${id}">${txt} <span class="sub-cuenta">${n}</span></button>`
-    )
-    .join("")}</div>`;
-  if (!desliza) return barra;
-  // Flechas y difuminado a los costados para que se note que la barra se desliza.
-  return `<div class="desliza-wrap al-inicio">${barra}
-    <button type="button" class="sub-flecha izq" data-sub-flecha="-1" aria-label="Ver categorías anteriores">‹</button>
-    <button type="button" class="sub-flecha der" data-sub-flecha="1" aria-label="Ver más categorías">›</button>
-  </div>`;
-}
-
-/** Muestra u oculta las flechas según cuánto se haya deslizado la barra. */
-function actualizarFlechas(barra) {
-  const wrap = barra.parentElement;
-  if (!wrap?.classList.contains("desliza-wrap")) return;
-  wrap.classList.toggle("al-inicio", barra.scrollLeft < 4);
-  wrap.classList.toggle("al-final", barra.scrollLeft + barra.clientWidth >= barra.scrollWidth - 4);
+/** Sub-pestañas de una vista, como un tambor que se gira con el dedo (velo.js,
+ * `montarRuedas`). Cada una es un botón con `atributo`=id; al soltar el tambor
+ * se hace clic en ella, así que los manejadores de cada vista siguen igual. */
+function subPestanas(secciones, actual, atributo) {
+  const i = Math.max(0, secciones.findIndex(([id]) => id === actual));
+  return `<div class="rueda-wrap"><div class="rueda" role="tablist" tabindex="0" data-actual="${i}">
+    ${secciones
+      .map(
+        ([id, txt, n], j) =>
+          `<button type="button" role="tab" tabindex="-1" aria-selected="${j === i}" class="rq-item${j === i ? " activo" : ""}" data-i="${j}" ${atributo}="${id}">${txt} <span class="sub-cuenta">${n}</span></button>`
+      )
+      .join("")}
+    <div class="rq-visor" aria-hidden="true"></div>
+  </div></div>`;
 }
 // ---------- Detalle de un indicador ----------
 
@@ -1028,10 +1022,7 @@ function pintar() {
   }
   if (tab === "inicio") montarPerilla();
   document.querySelectorAll(".tabbar a").forEach((a) => a.classList.toggle("activo", a.dataset.tab === tab));
-  document.querySelectorAll(".revision-tabs.desliza").forEach((b) => {
-    b.onscroll = () => actualizarFlechas(b);
-    actualizarFlechas(b);
-  });
+  montarRuedas();
   $("pie").hidden = false;
 }
 
@@ -1082,12 +1073,6 @@ function init() {
   document.addEventListener("click", (ev) => {
     const ind = ev.target.closest("[data-analito]");
     if (ind) return abrirIndicador(ind.dataset.analito);
-    const fl = ev.target.closest("[data-sub-flecha]");
-    if (fl) {
-      const barra = fl.parentElement.querySelector(".desliza");
-      barra.scrollBy({ left: Number(fl.dataset.subFlecha) * barra.clientWidth * 0.7, behavior: "smooth" });
-      return;
-    }
     const sp = ev.target.closest("[data-sub-plan]");
     if (sp) {
       subPlan = sp.dataset.subPlan;
