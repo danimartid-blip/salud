@@ -1,5 +1,5 @@
 // Pestaña Nutrición: el día completo, en sub-secciones
-//   Hoy (aquí: velocímetro de calorías y todas las metas del día) · Diario (diario.js)
+//   Hoy (aquí: todas las metas del día, porciones y lo que falta; el velocímetro está en Inicio, velo.js) · Diario (diario.js)
 //   · Entreno (entreno.js) · Despensa (despensa.js) · Pauta (pauta.js).
 // En las fichas con Nutrición no hay pestaña Metas: todo vive aquí. Las fichas sin
 // Nutrición siguen viendo Metas (metas.js) como siempre.
@@ -34,84 +34,11 @@ function metasDeHoy(k) {
   <div class="hab-grilla">${tiles}</div>`;
 }
 
-// La aguja se anima solo cuando cambian las calorías, no en cada repintado.
-let agujaVista = null;
-
-/** Velocímetro de calorías: 240° de arco. Hasta el 85 % de la meta es "vas bien",
- * del 85 al 100 % la zona ideal, sobre la meta ámbar y sobre el 110 % rojo. */
-function velocimetro(kcal, metaK) {
-  const max = Math.ceil((metaK * 1.3) / 100) * 100;
-  const A0 = 150, A1 = 390; // grados, sentido horario desde el eje x
-  const cx = 150, cy = 150, R = 118;
-  const ang = (v) => A0 + (Math.min(v, max) / max) * (A1 - A0);
-  const pt = (a, r) => [cx + r * Math.cos((a * Math.PI) / 180), cy + r * Math.sin((a * Math.PI) / 180)];
-  const arco = (v0, v1, r) => {
-    const a0 = ang(v0), a1 = ang(v1);
-    const [x0, y0] = pt(a0, r), [x1, y1] = pt(a1, r);
-    return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
-  };
-  const zonas = [
-    [0, metaK * 0.85, "z-bien"],
-    [metaK * 0.85, metaK, "z-ideal"],
-    [metaK, metaK * 1.1, "z-ojo"],
-    [metaK * 1.1, max, "z-pasado"],
-  ];
-  const paso = max > 2400 ? 500 : 250;
-  const marcas = [];
-  for (let v = 0; v <= max; v += paso / 5) {
-    const grande = v % paso === 0;
-    const [x0, y0] = pt(ang(v), R - 20), [x1, y1] = pt(ang(v), R - (grande ? 31 : 25));
-    marcas.push(`<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" class="${grande ? "m-grande" : "m-chica"}"/>`);
-    if (grande && v > 0 && v < max) {
-      const [tx, ty] = pt(ang(v), R - 44);
-      marcas.push(`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" class="m-num">${v >= 1000 ? `${String(v / 1000).replace(".", ",")}k` : v}</text>`);
-    }
-  }
-  const [mx0, my0] = pt(ang(metaK), R + 12), [mx1, my1] = pt(ang(metaK), R - 12);
-  const estado = kcal > metaK * 1.1 ? "pasado" : kcal > metaK ? "ojo" : kcal >= metaK * 0.85 ? "ideal" : "bien";
-  const giro = ang(kcal) - 270; // la aguja se dibuja apuntando hacia arriba (270°)
-  const anima = agujaVista !== kcal;
-  agujaVista = kcal;
-  return `<svg viewBox="0 0 300 232" class="velo velo-${estado}" role="img" aria-label="${kcal} de ${metaK} kilocalorías">
-    <defs>
-      <linearGradient id="veloProg" x1="0" x2="1"><stop offset="0" stop-color="#5ec8f2"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
-    </defs>
-    <path d="${arco(0, max, R)}" class="velo-pista"/>
-    ${zonas.map(([a, b, c]) => `<path d="${arco(a, b, R + 13)}" class="velo-zona ${c}"/>`).join("")}
-    ${kcal > 0 ? `<path d="${arco(0, Math.max(kcal, max * 0.004), R)}" class="velo-prog${anima ? " anima" : ""}" pathLength="100" style="--hasta:${(100 - (Math.min(kcal, max) / max) * 100).toFixed(1)}"/>` : ""}
-    ${marcas.join("")}
-    <line x1="${mx0.toFixed(1)}" y1="${my0.toFixed(1)}" x2="${mx1.toFixed(1)}" y2="${my1.toFixed(1)}" class="velo-meta"/>
-    <g class="velo-aguja${anima ? " anima" : ""}" style="--giro:${giro.toFixed(1)}deg;--desde:${(A0 - 270).toFixed(1)}deg">
-      <path d="M150 ${cy - R + 30} L155.5 150 L144.5 150 Z"/>
-    </g>
-    <circle cx="150" cy="150" r="11" class="velo-eje"/>
-    <circle cx="150" cy="150" r="4" class="velo-eje-c"/>
-    <text x="150" y="196" class="velo-num">${kcal.toLocaleString("es-CL")}</text>
-    <text x="150" y="216" class="velo-de">de ${metaK.toLocaleString("es-CL")} kcal</text>
-  </svg>`;
-}
-
-/** Calorías por comida, en una barra apilada. */
-function barraComidas(filas, total) {
-  if (!total) return "";
-  const partes = COMIDAS_DIA.map(([c], i) => [c, Math.round(suma(filas.filter((f) => norm(f.comida) === norm(c)), "kcal")), i]);
-  const otras = Math.round(total - partes.reduce((s, p) => s + p[1], 0));
-  if (otras > 0) partes.push(["Otra", otras, 4]);
-  return `<div class="por-comida">
-    <div class="pc-barra">${partes.filter((p) => p[1] > 0).map(([c, v, i]) => `<i class="pc${i}" style="flex:${v}" title="${esc(c)}"></i>`).join("")}</div>
-    <div class="pc-ley">${partes
-      .map(([c, v, i]) => `<span class="${v ? "" : "vacia"}"><i class="pc${i}"></i>${esc(c)} <b>${v ? v.toLocaleString("es-CL") : "—"}</b></span>`)
-      .join("")}</div>
-  </div>`;
-}
-
 function vistaHoy() {
   const hoyK = ymd(hoyUTC());
-  const { filas, kcal, prot, usadas } = totalesDia(hoyK);
+  const { kcal, prot, usadas } = totalesDia(hoyK);
   const metaK = num(D.perfil.meta_kcal);
-  const metaP = num(D.perfil.meta_proteina_g);
   const metas = metaPorciones();
-  const resto = metaK ? metaK - kcal : 0;
 
   const barras = Object.entries(metas)
     .map(([g, meta]) => {
@@ -140,22 +67,8 @@ function vistaHoy() {
     })
     .join("");
 
-  const comidasHechas = COMIDAS_DIA.filter(([c]) => filas.some((f) => norm(f.comida) === norm(c))).length;
-  const cabeza = metaK
-    ? `<div class="velo-card">
-        ${velocimetro(kcal, metaK)}
-        <div class="velo-pill ${resto < 0 ? "mal" : ""}">${resto >= 0 ? `Te quedan <b>${resto.toLocaleString("es-CL")}</b> kcal` : `Te pasaste por <b>${(-resto).toLocaleString("es-CL")}</b> kcal`}</div>
-        <div class="velo-stats">
-          <div><b>${prot}<small> g</small></b><span>proteína${metaP ? ` de ${metaP}` : ""}</span>${metaP ? `<i style="--p:${Math.min(100, (prot / metaP) * 100).toFixed(0)}%"></i>` : ""}</div>
-          <div><b>${comidasHechas}<small>/${COMIDAS_DIA.length}</small></b><span>comidas anotadas</span></div>
-          <div><b>${metaK ? Math.round((kcal / metaK) * 100) : 0}<small>%</small></b><span>de tu meta</span></div>
-        </div>
-        ${barraComidas(filas, kcal)}
-      </div>`
-    : `<div class="card diario-total"><div class="diario-cifra"><b>${kcal.toLocaleString("es-CL")}</b> kcal</div><p>${prot} g de proteína</p></div>`;
-
   return `
-  ${cabeza}
+  <div class="hoy-linea"><b>${kcal.toLocaleString("es-CL")}</b> kcal${metaK ? ` de ${metaK.toLocaleString("es-CL")}` : ""} · ${prot} g de proteína <a href="#inicio">ver velocímetro</a></div>
   <button type="button" class="btn-primary diario-agregar" data-diario-agregar>+ Agregar lo que comí</button>
   ${metasDeHoy(hoyK)}
   ${barras ? `<h2>Porciones de la pauta</h2><div class="card porciones">${barras}</div>` : ""}

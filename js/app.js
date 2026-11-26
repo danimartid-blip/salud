@@ -622,23 +622,6 @@ const iconoHabito = (k) =>
   `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONOS_HABITO[norm(k)] || `<circle cx="12" cy="12" r="8"/>`}</svg>`;
 
 /** Pendientes como línea de tiempo horizontal: ocupa una franja y se desliza. */
-function lineaTiempo() {
-  const lista = pendientes();
-  if (!lista.length) return `<div class="card"><p class="vacio">Nada pendiente.</p></div>`;
-  return `<div class="tiempo" role="list">${lista
-    .map((a) => {
-      const i = D.agenda.indexOf(a);
-      const atrasado = a._fecha && diasHasta(a._fecha) < 0;
-      return `<button type="button" class="tiempo-item${atrasado ? " atrasado" : ""}${a._fecha ? "" : " sin-fecha"}" data-pendiente="${i}" role="listitem">
-        <span class="tiempo-fecha">${a._fecha ? `${a._fecha.getUTCDate()} ${MESES[a._fecha.getUTCMonth()]}` : "Sin fecha"}</span>
-        <span class="tiempo-nodo" aria-hidden="true"></span>
-        <strong>${esc(a.titulo)}</strong>
-        <small>${a._fecha ? (atrasado ? `atrasado · ${textoDias(a._fecha)}` : textoDias(a._fecha)) : esc(a.tipo || "")}</small>
-      </button>`;
-    })
-    .join("")}</div>`;
-}
-
 function vistaInicio() {
   const p = D.perfil;
   const fuera = D.indicadores.filter(esAtencion).length;
@@ -679,8 +662,10 @@ function vistaInicio() {
 
   ${D.cuerpo.length ? cuerpo() : ""}
 
-  <h2>Pendientes <a class="h2-link" href="#plan">Ver plan</a></h2>
-  ${lineaTiempo()}`;
+  ${hayNutricion() ? veloInicio() : ""}
+
+  <h2>Lo que viene <a class="h2-link" href="#plan">Ver plan</a></h2>
+  ${pendientesInicio()}`;
 }
 
 function abrirPendiente(i) {
@@ -1041,6 +1026,7 @@ function pintar() {
     el.hidden = k !== tab;
     if (k === tab) el.innerHTML = VISTAS[k]();
   }
+  if (tab === "inicio") montarPerilla();
   document.querySelectorAll(".tabbar a").forEach((a) => a.classList.toggle("activo", a.dataset.tab === tab));
   document.querySelectorAll(".revision-tabs.desliza").forEach((b) => {
     b.onscroll = () => actualizarFlechas(b);
