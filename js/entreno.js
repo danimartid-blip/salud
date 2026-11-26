@@ -110,7 +110,7 @@ function vistaEntreno() {
       </div>
     </div>
   </div>
-  ${dias.length > 1 ? `<div class="filtros" role="tablist">${dias.map((d) => `<button type="button" class="filtro${d === entDia ? " activo" : ""}" data-ent-dia="${esc(d)}">Rutina ${esc(d)}</button>`).join("")}</div>` : ""}
+  ${dias.length > 1 ? subPestanas(dias.map((d) => [d, `Rutina ${d}`, d === toca ? "toca" : ""]), entDia, "data-ent-dia") : ""}
   <div class="card lista">${lista || `<p class="vacio">Esta rutina no tiene ejercicios.</p>`}</div>
   ${medidasResumen()}
   <h2>Historial</h2>

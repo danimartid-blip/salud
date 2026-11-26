@@ -781,8 +781,6 @@ function vistaIndicadores() {
       (!q || norm(i.nombre).includes(q) || norm(i.grupo).includes(q))
   );
   const grupos = [...new Set(D.indicadores.map((i) => i.grupo))];
-  const chip = (id, txt) =>
-    `<button type="button" class="filtro${filtroInd === id ? " activo" : ""}" data-filtro="${esc(id)}">${esc(txt)}</button>`;
 
   const porGrupo = new Map();
   for (const i of lista) {
@@ -792,10 +790,15 @@ function vistaIndicadores() {
 
   return `
   <input type="search" id="buscar" class="buscar" placeholder="Buscar indicador…" value="${esc(busqueda)}" aria-label="Buscar indicador">
-  <div class="filtros">
-    ${chip("todos", "Todos")}${chip("atencion", `Fuera de rango (${D.indicadores.filter(esAtencion).length})`)}
-    ${grupos.map((g) => chip(g, g)).join("")}
-  </div>
+  ${subPestanas(
+    [
+      ["todos", "Todos", D.indicadores.length],
+      ["atencion", "Fuera de rango", D.indicadores.filter(esAtencion).length],
+      ...grupos.map((g) => [g, g, D.indicadores.filter((i) => i.grupo === g).length]),
+    ],
+    filtroInd,
+    "data-filtro"
+  )}
   ${
     [...porGrupo]
       .map(([g, inds]) => {
@@ -842,9 +845,11 @@ function vistaExamenes() {
     </details>`;
   };
   return `
-  <div class="filtros">${cats
-    .map((c) => `<button type="button" class="filtro${filtroEx === c ? " activo" : ""}" data-filtro-ex="${esc(c)}">${esc(c)}</button>`)
-    .join("")}</div>
+  ${subPestanas(
+    cats.map((c) => [c, c, c === "Todos" ? D.examenes.length : D.examenes.filter((e) => e.categoria === c).length]),
+    filtroEx,
+    "data-filtro-ex"
+  )}
   ${[...porAnio].map(([a, es]) => `<h2>${esc(a)} <span class="cuenta">${es.length}</span></h2>${es.map(item).join("")}`).join("")}`;
 }
 
@@ -893,20 +898,61 @@ function vistaPlan() {
 
 let subPlan = "pendientes";
 
-/** Sub-pestañas de una vista, como un tambor que se gira con el dedo (velo.js,
- * `montarRuedas`). Cada una es un botón con `atributo`=id; al soltar el tambor
- * se hace clic en ella, así que los manejadores de cada vista siguen igual. */
+/** Barra de pestañas única de toda la app (Indicadores, Exámenes, Conclusiones,
+ * Nutrición, Plan, Entreno): una barra blanca con una píldora azul que se desliza
+ * hasta la pestaña elegida. `secciones` = [id, texto, cuenta?]; cada botón lleva
+ * `atributo`=id, así que los manejadores de cada vista no cambian. */
 function subPestanas(secciones, actual, atributo) {
-  const i = Math.max(0, secciones.findIndex(([id]) => id === actual));
-  return `<div class="rueda-wrap"><div class="rueda" role="tablist" tabindex="0" data-actual="${i}">
+  return `<div class="seg-wrap"><div class="seg" role="tablist" data-seg="${atributo}">
+    <span class="seg-pulgar" aria-hidden="true"></span>
     ${secciones
-      .map(
-        ([id, txt, n], j) =>
-          `<button type="button" role="tab" tabindex="-1" aria-selected="${j === i}" class="rq-item${j === i ? " activo" : ""}" data-i="${j}" ${atributo}="${id}">${txt} <span class="sub-cuenta">${n}</span></button>`
-      )
+      .map(([id, txt, n]) => {
+        const act = String(id) === String(actual);
+        return `<button type="button" role="tab" aria-selected="${act}" class="seg-btn${act ? " activo" : ""}" ${atributo}="${esc(id)}">${esc(txt)}${
+          n !== undefined && n !== null && n !== "" ? ` <span class="seg-n">${esc(n)}</span>` : ""
+        }</button>`;
+      })
       .join("")}
-    <div class="rq-visor" aria-hidden="true"></div>
   </div></div>`;
+}
+
+/** Dónde quedó la píldora de cada barra, para deslizarla desde ahí al repintar. */
+const posSeg = {};
+
+function bordesSeg(s) {
+  const w = s.parentElement;
+  w.classList.toggle("al-inicio", s.scrollLeft < 4);
+  w.classList.toggle("al-final", s.scrollLeft + s.clientWidth > s.scrollWidth - 4);
+}
+
+function montarSegs() {
+  for (const s of document.querySelectorAll(".seg")) {
+    const act = s.querySelector(".seg-btn.activo"), p = s.querySelector(".seg-pulgar");
+    if (!act) {
+      p.hidden = true;
+      continue;
+    }
+    const clave = s.dataset.seg, prev = posSeg[clave];
+    const fin = { x: act.offsetLeft, w: act.offsetWidth };
+    const objetivo = Math.max(0, Math.min(s.scrollWidth - s.clientWidth, act.offsetLeft - (s.clientWidth - act.offsetWidth) / 2));
+    if (prev) {
+      s.scrollLeft = prev.scroll;
+      p.style.transition = "none";
+      p.style.transform = `translateX(${prev.x}px)`;
+      p.style.width = `${prev.w}px`;
+      void p.offsetWidth; // fija el punto de partida antes de animar
+      p.style.transition = "";
+    }
+    p.style.transform = `translateX(${fin.x}px)`;
+    p.style.width = `${fin.w}px`;
+    s.scrollTo({ left: objetivo, behavior: prev ? "smooth" : "auto" });
+    posSeg[clave] = { ...fin, scroll: objetivo };
+    s.onscroll = () => {
+      posSeg[clave].scroll = s.scrollLeft;
+      bordesSeg(s);
+    };
+    bordesSeg(s);
+  }
 }
 // ---------- Detalle de un indicador ----------
 
@@ -1022,7 +1068,7 @@ function pintar() {
   }
   if (tab === "inicio") montarPerilla();
   document.querySelectorAll(".tabbar a").forEach((a) => a.classList.toggle("activo", a.dataset.tab === tab));
-  montarRuedas();
+  montarSegs();
   $("pie").hidden = false;
 }
 
@@ -1078,7 +1124,6 @@ function init() {
       subPlan = sp.dataset.subPlan;
       pintar();
       window.scrollTo(0, 0);
-      $("vista-plan").querySelector(".filtro.activo")?.scrollIntoView({ block: "nearest", inline: "center" });
       return;
     }
     const ficha = ev.target.closest("[data-ficha]");

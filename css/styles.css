@@ -761,36 +761,6 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .panel-vivo .escaner, .panel-vivo .velo-inicio { background: transparent; border: 0; box-shadow: none; border-radius: 0; margin: 0; }
 .panel-corte { height: 1px; margin: 2px 22px 4px; background: linear-gradient(90deg, transparent, rgba(140, 210, 255, 0.4), transparent); }
 
-/* ---------- Sub-pestañas: tambor claro, blanco con celeste ---------- */
-.rueda-wrap { position: sticky; top: 8px; z-index: 5; margin: 0 0 14px; }
-.rueda {
-  --estria: 0px;
-  position: relative; height: 50px; border-radius: 16px; overflow: hidden; cursor: grab; outline: none;
-  touch-action: pan-y; user-select: none; -webkit-user-select: none;
-  background:
-    linear-gradient(90deg, rgba(0, 70, 130, 0.2) 0%, rgba(0, 70, 130, 0) 20%, rgba(255, 255, 255, 0.6) 50%, rgba(0, 70, 130, 0) 80%, rgba(0, 70, 130, 0.2) 100%),
-    repeating-linear-gradient(90deg, rgba(0, 121, 200, 0.1) 0 1.5px, transparent 1.5px 12px) var(--estria) 0 / auto,
-    linear-gradient(180deg, #ffffff 0%, #eef7fd 55%, #dcedf9 100%);
-  border: 1px solid var(--borde);
-  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.9), inset 0 -3px 5px rgba(0, 70, 130, 0.1), var(--sombra);
-}
-.rueda:focus-visible { box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.5); }
-.rueda.girando { cursor: grabbing; }
-.rq-item {
-  position: absolute; left: 50%; top: 0; bottom: 0; width: 104px; margin-left: -52px; border: 0; background: transparent; font: inherit;
-  font-size: 13.5px; font-weight: 600; color: var(--tinta-2); white-space: nowrap; cursor: inherit; padding: 0 4px; will-change: transform;
-  display: flex; align-items: center; justify-content: center; gap: 2px;
-}
-.rq-item .sub-cuenta { background: rgba(0, 121, 200, 0.1); color: var(--azul); }
-.rq-item.centro { color: var(--azul-oscuro); font-weight: 700; }
-.rq-item.centro .sub-cuenta { background: var(--azul); color: #fff; }
-.rq-visor {
-  position: absolute; top: 5px; bottom: 5px; left: 50%; width: 114px; margin-left: -57px; border-radius: 12px; pointer-events: none;
-  border: 1.5px solid rgba(0, 121, 200, 0.55); background: linear-gradient(180deg, rgba(0, 163, 224, 0.12), rgba(0, 163, 224, 0.04));
-  box-shadow: 0 0 12px rgba(0, 163, 224, 0.25);
-}
-.rq-visor::after { content: ""; position: absolute; left: 50%; top: -5px; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--celeste); }
-
 /* ---------- Tanque de proteína ---------- */
 .tanque { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 12px 4px; margin: 2px 6px 0; border-top: 1px solid rgba(140, 210, 255, 0.18); }
 .tanque svg { width: 140px; flex: none; overflow: visible; }
@@ -810,3 +780,40 @@ body.viendo-otra .hero { background: linear-gradient(135deg, #2f4f8f 0%, #0079c8
 .tq-txt b small { font-size: 13px; font-weight: 600; opacity: 0.75; }
 .tq-txt span { font-size: 12px; opacity: 0.8; }
 .tq-txt em { font-style: normal; font-size: 10.5px; color: #ffd28a; }
+
+/* ---------- Barra de pestañas única: blanca, con píldora azul que se desliza ---------- */
+.seg-wrap { position: sticky; top: 8px; z-index: 5; margin: 0 0 14px; border-radius: 18px; }
+.seg {
+  position: relative; display: flex; gap: 2px; padding: 5px; overflow-x: auto; scrollbar-width: none; scroll-behavior: auto;
+  background: rgba(255, 255, 255, 0.92); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 121, 200, 0.1); border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 43, 70, 0.05), 0 8px 22px rgba(0, 121, 200, 0.1);
+}
+.seg::-webkit-scrollbar { display: none; }
+.seg-pulgar {
+  position: absolute; top: 5px; bottom: 5px; left: 0; width: 0; border-radius: 13px; z-index: 0; pointer-events: none;
+  background: linear-gradient(135deg, var(--azul) 0%, var(--celeste) 100%);
+  box-shadow: 0 4px 12px rgba(0, 121, 200, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.42s cubic-bezier(0.32, 1.25, 0.5, 1), width 0.42s cubic-bezier(0.32, 1.25, 0.5, 1);
+}
+.seg-btn {
+  position: relative; z-index: 1; flex: 1 0 auto; border: 0; background: transparent; font: inherit; cursor: pointer;
+  padding: 9px 14px; border-radius: 13px; font-size: 13.5px; font-weight: 600; color: var(--tinta-2); white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: color 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+.seg-btn:not(.activo):active { background: var(--celeste-suave); }
+.seg-btn.activo { color: #fff; }
+.seg-n {
+  min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 700; line-height: 1.5; text-align: center;
+  background: var(--celeste-suave); color: var(--azul); transition: background 0.25s, color 0.25s;
+}
+.seg-btn.activo .seg-n { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.seg-wrap::before, .seg-wrap::after {
+  content: ""; position: absolute; top: 1px; bottom: 1px; width: 28px; z-index: 2; pointer-events: none; transition: opacity 0.2s;
+}
+.seg-wrap::before { left: 1px; border-radius: 18px 0 0 18px; background: linear-gradient(to right, #fff 20%, rgba(255, 255, 255, 0)); }
+.seg-wrap::after { right: 1px; border-radius: 0 18px 18px 0; background: linear-gradient(to left, #fff 20%, rgba(255, 255, 255, 0)); }
+.seg-wrap.al-inicio::before, .seg-wrap.al-final::after { opacity: 0; }
+.buscar + .seg-wrap { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .seg-pulgar { transition: none; } }

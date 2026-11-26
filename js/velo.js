@@ -153,8 +153,7 @@ function veloInicio() {
 // ---------- La perilla ----------
 
 // ---------- Tambor: la ruedita que gira con el dedo ----------
-// Lo usan la perilla de días del Inicio y las sub-pestañas de toda la app
-// (Nutrición, Plan, Conclusiones…). Cada elemento con data-i es una franja del
+// Lo usa la perilla de días del Inicio. Cada elemento con data-i es una franja del
 // cilindro; se dibujan en perspectiva según su distancia al centro.
 
 /**
@@ -308,27 +307,6 @@ function montarPerilla() {
       svg.setAttribute("aria-label", `${dias[i].kcal} de ${metaK} kilocalorías`);
     },
   });
-}
-
-/** Sub-pestañas como tambor claro: al soltarlo en una, se elige esa (dispara el
- * mismo clic que antes daban los botones, así cada vista sigue igual). */
-function montarRuedas() {
-  for (const r of document.querySelectorAll(".rueda")) {
-    if (r._montada) continue;
-    const items = r.querySelectorAll("[data-i]");
-    const inicio = Number(r.dataset.actual);
-    const ancho = items[0]?.offsetWidth || 120;
-    tambor(r, {
-      n: items.length,
-      inicio,
-      ang: Math.min(40, (Math.asin(Math.min(0.9, (ancho * 1.12) / (r.clientWidth / 2))) * 180) / Math.PI),
-      px: ancho,
-      impulso: 1,
-      alSoltar: (i) => {
-        if (i !== inicio) items[i].click();
-      },
-    });
-  }
 }
 
 // ---------- Tanque de proteína (como el de la bencina) ----------
